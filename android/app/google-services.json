@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "994858440199",
+    "project_id": "manufacturing-monitor-0508",
+    "storage_bucket": "manufacturing-monitor-0508.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:994858440199:android:cfe5ba3d9a20732c7d3ca2",
+        "android_client_info": {
+          "package_name": "com.example.manufacturing_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyANp5kyeTnnxxeSRrVevwa258SRJJQLJF0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
