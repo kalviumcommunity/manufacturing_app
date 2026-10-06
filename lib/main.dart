@@ -158,7 +158,7 @@ Future<void> main() async {
 
               ProductionLineCard(
                 lineName: 'Production Line 02',
-                machines: 6,
+                machines: 7,
                 status: 'Running',
                 statusColor: Colors.green,
               ),
@@ -167,18 +167,18 @@ Future<void> main() async {
 
               ProductionLineCard(
                 lineName: 'Production Line 03',
-                machines: 5,
-                status: 'Breakdown',
-                statusColor: Colors.red,
+                machines: 6,
+                status: 'Running',
+                statusColor: Colors.green,
               ),
 
               const SizedBox(height: 15),
 
               ProductionLineCard(
                 lineName: 'Production Line 04',
-                machines: 5,
-                status: 'Maintenance',
-                statusColor: Colors.orange,
+                machines: 3,
+                status: 'Breakdown',
+                statusColor: Colors.red,
               ),
 
               const SizedBox(height: 35),
