@@ -11,6 +11,8 @@ Future<void> main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
+  
+
   runApp(const ManufacturingApp());
 }
 
@@ -36,6 +38,175 @@ Future<void> main() async {
       );
     }
   }
+
+Future<void> seedMachines() async {
+  final machines = [
+    {
+      'machineId': 'M-101',
+      'machineName': 'CNC Cutting Machine',
+      'lineName': 'Production Line 01',
+      'status': 'Running',
+    },
+    {
+      'machineId': 'M-102',
+      'machineName': 'Hydraulic Press',
+      'lineName': 'Production Line 01',
+      'status': 'Running',
+    },
+    {
+      'machineId': 'M-103',
+      'machineName': 'Industrial Motor',
+      'lineName': 'Production Line 01',
+      'status': 'Breakdown',
+    },
+    {
+      'machineId': 'M-104',
+      'machineName': 'Assembly Machine',
+      'lineName': 'Production Line 01',
+      'status': 'Running',
+    },
+    {
+      'machineId': 'M-105',
+      'machineName': 'Drilling Machine',
+      'lineName': 'Production Line 01',
+      'status': 'Running',
+    },
+    {
+      'machineId': 'M-106',
+      'machineName': 'Welding Machine',
+      'lineName': 'Production Line 01',
+      'status': 'Running',
+    },
+    {
+      'machineId': 'M-107',
+      'machineName': 'Grinding Machine',
+      'lineName': 'Production Line 01',
+      'status': 'Maintenance',
+    },
+    {
+      'machineId': 'M-108',
+      'machineName': 'Conveyor Motor',
+      'lineName': 'Production Line 01',
+      'status': 'Running',
+    },
+
+    {
+      'machineId': 'M-201',
+      'machineName': 'CNC Lathe',
+      'lineName': 'Production Line 02',
+      'status': 'Running',
+    },
+    {
+      'machineId': 'M-202',
+      'machineName': 'Hydraulic Cutter',
+      'lineName': 'Production Line 02',
+      'status': 'Running',
+    },
+    {
+      'machineId': 'M-203',
+      'machineName': 'Press Machine',
+      'lineName': 'Production Line 02',
+      'status': 'Running',
+    },
+    {
+      'machineId': 'M-204',
+      'machineName': 'Milling Machine',
+      'lineName': 'Production Line 02',
+      'status': 'Running',
+    },
+    {
+      'machineId': 'M-205',
+      'machineName': 'Robot Arm',
+      'lineName': 'Production Line 02',
+      'status': 'Breakdown',
+    },
+    {
+      'machineId': 'M-206',
+      'machineName': 'Packaging Machine',
+      'lineName': 'Production Line 02',
+      'status': 'Running',
+    },
+
+    {
+      'machineId': 'M-301',
+      'machineName': 'Belt Conveyor',
+      'lineName': 'Production Line 03',
+      'status': 'Running',
+    },
+    {
+      'machineId': 'M-302',
+      'machineName': 'Industrial Fan',
+      'lineName': 'Production Line 03',
+      'status': 'Running',
+    },
+    {
+      'machineId': 'M-303',
+      'machineName': 'Cooling Unit',
+      'lineName': 'Production Line 03',
+      'status': 'Running',
+    },
+    {
+      'machineId': 'M-304',
+      'machineName': 'Assembly Robot',
+      'lineName': 'Production Line 03',
+      'status': 'Breakdown',
+    },
+    {
+      'machineId': 'M-305',
+      'machineName': 'Inspection Machine',
+      'lineName': 'Production Line 03',
+      'status': 'Running',
+    },
+
+    {
+      'machineId': 'M-401',
+      'machineName': 'Laser Cutter',
+      'lineName': 'Production Line 04',
+      'status': 'Running',
+    },
+    {
+      'machineId': 'M-402',
+      'machineName': 'Material Feeder',
+      'lineName': 'Production Line 04',
+      'status': 'Running',
+    },
+    {
+      'machineId': 'M-403',
+      'machineName': 'Final Assembly Machine',
+      'lineName': 'Production Line 04',
+      'status': 'Running',
+    },
+    {
+      'machineId': 'M-404',
+      'machineName': 'Quality Scanner',
+      'lineName': 'Production Line 04',
+      'status': 'Maintenance',
+    },
+    {
+      'machineId': 'M-405',
+      'machineName': 'Packing Machine',
+      'lineName': 'Production Line 04',
+      'status': 'Running',
+    },
+  ];
+
+  final batch = FirebaseFirestore.instance.batch();
+
+  for (final machine in machines) {
+    final machineId = machine['machineId']!;
+
+    final reference = FirebaseFirestore.instance
+        .collection('machines')
+        .doc(machineId);
+
+    batch.set(reference, {
+      ...machine,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  await batch.commit();
+}
 
   // ============================================================
   // DASHBOARD
@@ -95,44 +266,79 @@ Future<void> main() async {
               // STAT CARDS
               // ------------------------------------------------
 
-              Row(
-                children: [
+StreamBuilder<QuerySnapshot>(
+  stream: FirebaseFirestore.instance
+      .collection('machines')
+      .snapshots(),
 
-                  Expanded(
-                    child: StatCard(
-                      title: 'Machines',
-                      value: '24',
-                      icon: Icons.precision_manufacturing,
-                      color: Colors.blue,
-                    ),
-                  ),
+  builder: (context, snapshot) {
+    if (snapshot.connectionState == ConnectionState.waiting) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
 
-                  const SizedBox(width: 15),
+    if (snapshot.hasError) {
+      return const Text(
+        'Failed to load machine data',
+        style: TextStyle(
+          color: Colors.red,
+        ),
+      );
+    }
 
-                  Expanded(
-                    child: StatCard(
-                      title: 'Running',
-                      value: '21',
-                      icon: Icons.play_circle,
-                      color: Colors.green,
-                    ),
-                  ),
+    final machines = snapshot.data?.docs ?? [];
 
-                  const SizedBox(width: 15),
+    final totalMachines = machines.length;
 
-                  Expanded(
-                    child: StatCard(
-                      title: 'Breakdowns',
-                      value: '3',
-                      icon: Icons.warning,
-                      color: Colors.red,
-                    ),
-                  ),
-                ],
-              ),
+    final runningMachines = machines.where((machine) {
+      final data = machine.data() as Map<String, dynamic>;
 
-              const SizedBox(height: 35),
+      return data['status'] == 'Running';
+    }).length;
 
+    final breakdownMachines = machines.where((machine) {
+      final data = machine.data() as Map<String, dynamic>;
+
+      return data['status'] == 'Breakdown';
+    }).length;
+
+    return Row(
+      children: [
+        Expanded(
+          child: StatCard(
+            title: 'Machines',
+            value: totalMachines.toString(),
+            icon: Icons.precision_manufacturing,
+            color: Colors.blue,
+          ),
+        ),
+
+        const SizedBox(width: 15),
+
+        Expanded(
+          child: StatCard(
+            title: 'Running',
+            value: runningMachines.toString(),
+            icon: Icons.play_circle,
+            color: Colors.green,
+          ),
+        ),
+
+        const SizedBox(width: 15),
+
+        Expanded(
+          child: StatCard(
+            title: 'Breakdowns',
+            value: breakdownMachines.toString(),
+            icon: Icons.warning,
+            color: Colors.red,
+          ),
+        ),
+      ],
+    );
+  },
+),
               // ------------------------------------------------
               // PRODUCTION LINES
               // ------------------------------------------------
@@ -147,38 +353,88 @@ Future<void> main() async {
 
               const SizedBox(height: 15),
 
-              ProductionLineCard(
-                lineName: 'Production Line 01',
-                machines: 8,
-                status: 'Running',
-                statusColor: Colors.green,
-              ),
+              StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('machines')
+                    .snapshots(),
 
-              const SizedBox(height: 15),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  }
 
-              ProductionLineCard(
-                lineName: 'Production Line 02',
-                machines: 7,
-                status: 'Running',
-                statusColor: Colors.green,
-              ),
+                  if (snapshot.hasError) {
+                    return const Text(
+                      'Failed to load production lines',
+                      style: TextStyle(
+                        color: Colors.red,
+                      ),
+                    );
+                  }
 
-              const SizedBox(height: 15),
+                  final machines = snapshot.data?.docs ?? [];
 
-              ProductionLineCard(
-                lineName: 'Production Line 03',
-                machines: 6,
-                status: 'Running',
-                statusColor: Colors.green,
-              ),
+                  final lineNames = [
+                    'Production Line 01',
+                    'Production Line 02',
+                    'Production Line 03',
+                    'Production Line 04',
+                  ];
 
-              const SizedBox(height: 15),
+                  return Column(
+                    children: lineNames.map((lineName) {
 
-              ProductionLineCard(
-                lineName: 'Production Line 04',
-                machines: 3,
-                status: 'Breakdown',
-                statusColor: Colors.red,
+                      final lineMachines = machines.where((machine) {
+                        final data =
+                            machine.data() as Map<String, dynamic>;
+
+                        return data['lineName'] == lineName;
+                      }).toList();
+
+                      final machineCount = lineMachines.length;
+
+                      final breakdownCount = lineMachines.where((machine) {
+                        final data =
+                            machine.data() as Map<String, dynamic>;
+
+                        return data['status'] == 'Breakdown';
+                      }).length;
+
+                      final maintenanceCount = lineMachines.where((machine) {
+                        final data =
+                            machine.data() as Map<String, dynamic>;
+
+                        return data['status'] == 'Maintenance';
+                      }).length;
+
+                      String status;
+                      Color statusColor;
+
+                      if (breakdownCount > 0) {
+                        status = 'Breakdown';
+                        statusColor = Colors.red;
+                      } else if (maintenanceCount > 0) {
+                        status = 'Maintenance';
+                        statusColor = Colors.orange;
+                      } else {
+                        status = 'Running';
+                        statusColor = Colors.green;
+                      }
+
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 15),
+                        child: ProductionLineCard(
+                          lineName: lineName,
+                          machines: machineCount,
+                          status: status,
+                          statusColor: statusColor,
+                        ),
+                      );
+                    }).toList(),
+                  );
+                },
               ),
 
               const SizedBox(height: 35),
@@ -492,71 +748,118 @@ Future<void> main() async {
       return Scaffold(
         appBar: AppBar(
           title: Text(lineName),
-
           backgroundColor: Colors.white,
           foregroundColor: Colors.black,
           elevation: 0,
         ),
 
-        body: ListView(
-          padding: const EdgeInsets.all(20),
+        body: StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('machines')
+              .where(
+                'lineName',
+                isEqualTo: lineName,
+              )
+              .snapshots(),
 
-          children: [
+          builder: (context, snapshot) {
+            if (snapshot.connectionState ==
+                ConnectionState.waiting) {
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
+            }
 
-            const Text(
-              'Machines',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            if (snapshot.hasError) {
+              return const Center(
+                child: Text(
+                  'Failed to load machines',
+                  style: TextStyle(
+                    color: Colors.red,
+                  ),
+                ),
+              );
+            }
 
-            const SizedBox(height: 8),
+            final machines = snapshot.data?.docs ?? [];
 
-            Text(
-              'Machines operating on $lineName',
-              style: const TextStyle(
-                color: Colors.grey,
-                fontSize: 16,
-              ),
-            ),
+            if (machines.isEmpty) {
+              return const Center(
+                child: Text(
+                  'No machines found for this production line.',
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 16,
+                  ),
+                ),
+              );
+            }
 
-            const SizedBox(height: 25),
+            return ListView(
+              padding: const EdgeInsets.all(20),
 
-            MachineCard(
-              machineId: 'M-101',
-              machineName: 'CNC Cutting Machine',
-              status: 'Running',
-              statusColor: Colors.green,
-            ),
+              children: [
+                const Text(
+                  'Machines',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
 
-            const SizedBox(height: 15),
+                const SizedBox(height: 8),
 
-            MachineCard(
-              machineId: 'M-102',
-              machineName: 'Hydraulic Press',
-              status: 'Running',
-              statusColor: Colors.green,
-            ),
+                Text(
+                  'Machines operating on $lineName',
+                  style: const TextStyle(
+                    color: Colors.grey,
+                    fontSize: 16,
+                  ),
+                ),
 
-            const SizedBox(height: 15),
+                const SizedBox(height: 25),
 
-            MachineCard(
-              machineId: 'M-103',
-              machineName: 'Industrial Motor',
-              status: 'Breakdown',
-              statusColor: Colors.red,
-            ),
+                ...machines.map((machine) {
+                  final data =
+                      machine.data() as Map<String, dynamic>;
 
-            const SizedBox(height: 15),
+                  final machineId =
+                      data['machineId'] ?? '';
 
-            MachineCard(
-              machineId: 'M-104',
-              machineName: 'Assembly Machine',
-              status: 'Maintenance',
-              statusColor: Colors.orange,
-            ),
-          ],
+                  final machineName =
+                      data['machineName'] ?? 'Unknown Machine';
+
+                  final status =
+                      data['status'] ?? 'Unknown';
+
+                  Color statusColor;
+
+                  if (status == 'Running') {
+                    statusColor = Colors.green;
+                  } else if (status == 'Breakdown') {
+                    statusColor = Colors.red;
+                  } else if (status == 'Maintenance') {
+                    statusColor = Colors.orange;
+                  } else {
+                    statusColor = Colors.grey;
+                  }
+
+                  return Padding(
+                    padding: const EdgeInsets.only(
+                      bottom: 15,
+                    ),
+
+                    child: MachineCard(
+                      machineId: machineId,
+                      machineName: machineName,
+                      status: status,
+                      statusColor: statusColor,
+                    ),
+                  );
+                }).toList(),
+              ],
+            );
+          },
         ),
       );
     }
@@ -1571,12 +1874,26 @@ class _AuthScreenState extends State<AuthScreen> {
           email: email,
           password: password,
         );
-      } else {
-        await FirebaseAuth.instance.createUserWithEmailAndPassword(
-          email: email,
-          password: password,
-        );
-      }
+} else {
+  final credential =
+      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+    email: email,
+    password: password,
+  );
+
+  final user = credential.user;
+
+  if (user != null) {
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .set({
+      'uid': user.uid,
+      'email': user.email,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+  }
+}
     } on FirebaseAuthException catch (error) {
       String message = 'Authentication failed';
 
