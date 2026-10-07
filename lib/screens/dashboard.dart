@@ -257,7 +257,8 @@ class DashboardHomeContent extends StatelessWidget {
                       machine: data['machineName'] ?? 'Unknown Machine',
                       line: 'Production Line', 
                       issue: data['description'] ?? 'No description',
-                      time: data['severity'] ?? 'Unknown severity',
+                      time: data['timestamp'] != null ? (data['timestamp'] as Timestamp).toDate().toString().split('.')[0] : 'Just now',
+                      severity: data['severity'] ?? 'Unknown severity',
                     ),
                   );
                 }).toList(),

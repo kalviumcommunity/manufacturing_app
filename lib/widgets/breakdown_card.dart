@@ -9,6 +9,7 @@ class BreakdownCard extends StatelessWidget {
   final String line;
   final String issue;
   final String time;
+  final String severity;
 
   const BreakdownCard({
     super.key,
@@ -16,6 +17,7 @@ class BreakdownCard extends StatelessWidget {
     required this.line,
     required this.issue,
     required this.time,
+    required this.severity,
   });
 
   @override
@@ -60,7 +62,7 @@ class BreakdownCard extends StatelessWidget {
                 Text(issue, style: const TextStyle(fontSize: 14)),
                 const SizedBox(height: 8),
                 Text(
-                  time,
+                  'Severity: $severity • $time',
                   style: const TextStyle(
                     color: Colors.red,
                     fontSize: 12,

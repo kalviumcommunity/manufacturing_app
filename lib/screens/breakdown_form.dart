@@ -59,13 +59,18 @@ class _BreakdownFormScreenState extends State<BreakdownFormScreen> {
         'reportedBy': user?.uid,
       });
 
-      await FirebaseFirestore.instance
+      final machineDocs = await FirebaseFirestore.instance
           .collection('machines')
-          .doc(widget.machineId)
-          .update({
-            'status': 'Breakdown',
-            'updatedAt': FieldValue.serverTimestamp(),
-          });
+          .where('machineId', isEqualTo: widget.machineId)
+          .limit(1)
+          .get();
+          
+      if (machineDocs.docs.isNotEmpty) {
+        await machineDocs.docs.first.reference.update({
+          'status': 'Breakdown',
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
 
       if (!mounted) return;
 
