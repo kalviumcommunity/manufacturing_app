@@ -328,12 +328,10 @@ class DashboardHomeContent extends StatelessWidget {
           const SizedBox(height: 25),
 
           // ------------------------------------------------
-          // STAT CARDS
+          // MACHINES STREAM (STAT CARDS + PRODUCTION LINES)
           // ------------------------------------------------
           StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('machines')
-                .snapshots(),
+            stream: FirebaseFirestore.instance.collection('machines').snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
@@ -347,137 +345,103 @@ class DashboardHomeContent extends StatelessWidget {
               }
 
               final machines = snapshot.data?.docs ?? [];
-
               final totalMachines = machines.length;
 
               final runningMachines = machines.where((machine) {
                 final data = machine.data() as Map<String, dynamic>;
-
                 return data['status'] == 'Running';
               }).length;
 
               final breakdownMachines = machines.where((machine) {
                 final data = machine.data() as Map<String, dynamic>;
-
                 return data['status'] == 'Breakdown';
               }).length;
-
-              return Row(
-                children: [
-                  Expanded(
-                    child: StatCard(
-                      title: 'Machines',
-                      value: totalMachines.toString(),
-                      icon: Icons.precision_manufacturing,
-                      color: Colors.blue,
-                    ),
-                  ),
-                  const SizedBox(width: 15),
-                  Expanded(
-                    child: StatCard(
-                      title: 'Running',
-                      value: runningMachines.toString(),
-                      icon: Icons.play_circle,
-                      color: Colors.green,
-                    ),
-                  ),
-                  const SizedBox(width: 15),
-                  Expanded(
-                    child: StatCard(
-                      title: 'Breakdowns',
-                      value: breakdownMachines.toString(),
-                      icon: Icons.warning,
-                      color: Colors.red,
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
-
-          const SizedBox(height: 30),
-
-          // ------------------------------------------------
-          // PRODUCTION LINES
-          // ------------------------------------------------
-          const Text(
-            'Production Lines',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-          ),
-
-          const SizedBox(height: 15),
-
-          StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('machines')
-                .snapshots(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              if (snapshot.hasError) {
-                return const Text(
-                  'Failed to load production lines',
-                  style: TextStyle(color: Colors.red),
-                );
-              }
-
-              final machines = snapshot.data?.docs ?? [];
-
-              final lineNames = [
-                'Production Line 01',
-                'Production Line 02',
-                'Production Line 03',
-                'Production Line 04',
-              ];
+              
+              // Dynamically extract unique line names
+              final lineNames = machines.map((machine) {
+                final data = machine.data() as Map<String, dynamic>;
+                return (data['lineName'] ?? 'Unknown Line') as String;
+              }).toSet().toList()..sort();
 
               return Column(
-                children: lineNames.map((lineName) {
-                  final lineMachines = machines.where((machine) {
-                    final data = machine.data() as Map<String, dynamic>;
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: StatCard(
+                          title: 'Machines',
+                          value: totalMachines.toString(),
+                          icon: Icons.precision_manufacturing,
+                          color: Colors.blue,
+                        ),
+                      ),
+                      const SizedBox(width: 15),
+                      Expanded(
+                        child: StatCard(
+                          title: 'Running',
+                          value: runningMachines.toString(),
+                          icon: Icons.play_circle,
+                          color: Colors.green,
+                        ),
+                      ),
+                      const SizedBox(width: 15),
+                      Expanded(
+                        child: StatCard(
+                          title: 'Breakdowns',
+                          value: breakdownMachines.toString(),
+                          icon: Icons.warning,
+                          color: Colors.red,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 30),
+                  const Text(
+                    'Production Lines',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 15),
+                  ...lineNames.map((lineName) {
+                    final lineMachines = machines.where((machine) {
+                      final data = machine.data() as Map<String, dynamic>;
+                      return data['lineName'] == lineName;
+                    }).toList();
 
-                    return data['lineName'] == lineName;
-                  }).toList();
+                    final machineCount = lineMachines.length;
+                    final breakdownCount = lineMachines.where((machine) {
+                      final data = machine.data() as Map<String, dynamic>;
+                      return data['status'] == 'Breakdown';
+                    }).length;
+                    final maintenanceCount = lineMachines.where((machine) {
+                      final data = machine.data() as Map<String, dynamic>;
+                      return data['status'] == 'Maintenance';
+                    }).length;
 
-                  final machineCount = lineMachines.length;
+                    String status;
+                    Color statusColor;
+                    if (breakdownCount > 0) {
+                      status = 'Breakdown';
+                      statusColor = Colors.red;
+                    } else if (maintenanceCount > 0) {
+                      status = 'Maintenance';
+                      statusColor = Colors.orange;
+                    } else {
+                      status = 'Running';
+                      statusColor = Colors.green;
+                    }
 
-                  final breakdownCount = lineMachines.where((machine) {
-                    final data = machine.data() as Map<String, dynamic>;
-
-                    return data['status'] == 'Breakdown';
-                  }).length;
-
-                  final maintenanceCount = lineMachines.where((machine) {
-                    final data = machine.data() as Map<String, dynamic>;
-
-                    return data['status'] == 'Maintenance';
-                  }).length;
-
-                  String status;
-                  Color statusColor;
-
-                  if (breakdownCount > 0) {
-                    status = 'Breakdown';
-                    statusColor = Colors.red;
-                  } else if (maintenanceCount > 0) {
-                    status = 'Maintenance';
-                    statusColor = Colors.orange;
-                  } else {
-                    status = 'Running';
-                    statusColor = Colors.green;
-                  }
-
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 15),
-                    child: ProductionLineCard(
-                      lineName: lineName,
-                      machineCount: machineCount,
-                      status: status,
-                      statusColor: statusColor,
-                    ),
-                  );
-                }).toList(),
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 15),
+                      child: ProductionLineCard(
+                        lineName: lineName,
+                        machineCount: machineCount,
+                        status: status,
+                        statusColor: statusColor,
+                      ),
+                    );
+                  }),
+                ],
               );
             },
           ),
@@ -491,7 +455,6 @@ class DashboardHomeContent extends StatelessWidget {
             'Recent Breakdowns',
             style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
           ),
-
           const SizedBox(height: 15),
 
           StreamBuilder<QuerySnapshot>(
@@ -524,12 +487,11 @@ class DashboardHomeContent extends StatelessWidget {
               return Column(
                 children: breakdowns.map((doc) {
                   final data = doc.data() as Map<String, dynamic>;
-
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 15),
                     child: BreakdownCard(
                       machine: data['machineName'] ?? 'Unknown Machine',
-                      line: 'Production Line',
+                      line: 'Production Line', 
                       issue: data['description'] ?? 'No description',
                       time: data['severity'] ?? 'Unknown severity',
                     ),
