@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import '../screens/screens.dart';
-import '../widgets/widgets.dart';
+
+import '../widgets/machine_status_summary_card.dart';
+import 'machine_details.dart';
 
 class AllMachinesScreen extends StatelessWidget {
   const AllMachinesScreen({super.key});
@@ -162,6 +162,7 @@ class AllMachinesScreen extends StatelessWidget {
                             builder: (context) => MachineDetailsScreen(
                               machineId: machineId,
                               machineName: machineName,
+                              lineName: lineName,
                               status: status,
                             ),
                           ),
@@ -272,4 +273,3 @@ class AllMachinesScreen extends StatelessWidget {
     );
   }
 }
-

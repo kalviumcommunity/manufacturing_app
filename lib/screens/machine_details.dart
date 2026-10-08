@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import '../screens/screens.dart';
-import '../widgets/widgets.dart';
+
+import 'breakdown_form.dart';
+import 'inspection_form.dart';
 
 class MachineDetailsScreen extends StatelessWidget {
   final String machineId;
   final String machineName;
+  final String lineName;
   final String status;
 
   const MachineDetailsScreen({
     super.key,
     required this.machineId,
     required this.machineName,
+    required this.lineName,
     required this.status,
   });
 
@@ -160,6 +161,7 @@ class MachineDetailsScreen extends StatelessWidget {
                           builder: (context) => BreakdownFormScreen(
                             machineId: machineId,
                             machineName: machineName,
+                            lineName: lineName,
                           ),
                         ),
                       );
@@ -181,4 +183,3 @@ class MachineDetailsScreen extends StatelessWidget {
     );
   }
 }
-

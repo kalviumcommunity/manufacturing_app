@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../screens/screens.dart';
-import '../widgets/widgets.dart';
 
 class BreakdownFormScreen extends StatefulWidget {
   final String machineId;
   final String machineName;
+  final String lineName;
 
   const BreakdownFormScreen({
     super.key,
     required this.machineId,
     required this.machineName,
+    required this.lineName,
   });
 
   @override
@@ -53,6 +53,7 @@ class _BreakdownFormScreenState extends State<BreakdownFormScreen> {
       await FirebaseFirestore.instance.collection('breakdowns').add({
         'machineId': widget.machineId,
         'machineName': widget.machineName,
+        'lineName': widget.lineName,
         'severity': selectedSeverity,
         'description': description,
         'timestamp': FieldValue.serverTimestamp(),
@@ -64,7 +65,7 @@ class _BreakdownFormScreenState extends State<BreakdownFormScreen> {
           .where('machineId', isEqualTo: widget.machineId)
           .limit(1)
           .get();
-          
+
       if (machineDocs.docs.isNotEmpty) {
         await machineDocs.docs.first.reference.update({
           'status': 'Breakdown',
@@ -191,4 +192,3 @@ class _BreakdownFormScreenState extends State<BreakdownFormScreen> {
     );
   }
 }
-
