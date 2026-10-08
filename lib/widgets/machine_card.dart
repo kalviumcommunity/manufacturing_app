@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import '../screens/screens.dart';
-import '../widgets/widgets.dart';
+
+import '../screens/machine_details.dart';
 
 class MachineCard extends StatelessWidget {
   final String machineId;
   final String machineName;
+  final String lineName;
   final String status;
   final Color statusColor;
 
@@ -14,6 +13,7 @@ class MachineCard extends StatelessWidget {
     super.key,
     required this.machineId,
     required this.machineName,
+    required this.lineName,
     required this.status,
     required this.statusColor,
   });
@@ -28,6 +28,7 @@ class MachineCard extends StatelessWidget {
             builder: (context) => MachineDetailsScreen(
               machineId: machineId,
               machineName: machineName,
+              lineName: lineName,
               status: status,
             ),
           ),
@@ -105,4 +106,3 @@ class MachineCard extends StatelessWidget {
     );
   }
 }
-

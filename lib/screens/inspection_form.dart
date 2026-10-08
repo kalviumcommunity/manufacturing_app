@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../screens/screens.dart';
-import '../widgets/widgets.dart';
 
 class InspectionFormScreen extends StatefulWidget {
   final String machineId;
@@ -162,4 +160,3 @@ class _InspectionFormScreenState extends State<InspectionFormScreen> {
     );
   }
 }
-

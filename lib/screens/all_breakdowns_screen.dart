@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import '../screens/screens.dart';
-import '../widgets/widgets.dart';
+
+import '../widgets/breakdown_summary_card.dart';
 
 class AllBreakdownsScreen extends StatelessWidget {
   const AllBreakdownsScreen({super.key});
@@ -342,4 +341,3 @@ class AllBreakdownsScreen extends StatelessWidget {
     );
   }
 }
-

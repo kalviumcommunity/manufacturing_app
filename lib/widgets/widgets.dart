@@ -1,9 +1,7 @@
 export 'dashboard_sidebar.dart';
 export 'stat_card.dart';
 export 'production_line_card.dart';
-export 'machine_list.dart';
 export 'machine_card.dart';
-export 'machine_details.dart';
 export 'breakdown_card.dart';
 export 'machine_status_summary_card.dart';
 export 'breakdown_summary_card.dart';

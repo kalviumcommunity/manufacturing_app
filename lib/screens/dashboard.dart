@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../screens/screens.dart';
-import '../widgets/widgets.dart';
+
+import '../widgets/breakdown_card.dart';
+import '../widgets/dashboard_sidebar.dart';
+import '../widgets/production_line_card.dart';
+import '../widgets/stat_card.dart';
+import 'all_breakdowns_screen.dart';
+import 'all_machines_screen.dart';
+import 'settings_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -95,7 +101,9 @@ class DashboardHomeContent extends StatelessWidget {
           // MACHINES STREAM (STAT CARDS + PRODUCTION LINES)
           // ------------------------------------------------
           StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance.collection('machines').snapshots(),
+            stream: FirebaseFirestore.instance
+                .collection('machines')
+                .snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
@@ -120,12 +128,17 @@ class DashboardHomeContent extends StatelessWidget {
                 final data = machine.data() as Map<String, dynamic>;
                 return data['status'] == 'Breakdown';
               }).length;
-              
+
               // Dynamically extract unique line names
-              final lineNames = machines.map((machine) {
-                final data = machine.data() as Map<String, dynamic>;
-                return (data['lineName'] ?? 'Unknown Line') as String;
-              }).toSet().toList()..sort();
+              final lineNames =
+                  machines
+                      .map((machine) {
+                        final data = machine.data() as Map<String, dynamic>;
+                        return (data['lineName'] ?? 'Unknown Line') as String;
+                      })
+                      .toSet()
+                      .toList()
+                    ..sort();
 
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -251,13 +264,18 @@ class DashboardHomeContent extends StatelessWidget {
               return Column(
                 children: breakdowns.map((doc) {
                   final data = doc.data() as Map<String, dynamic>;
+                  final timestamp = data['timestamp'];
+                  final reportedTime = timestamp is Timestamp
+                      ? timestamp.toDate().toString().split('.')[0]
+                      : 'Just now';
+
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 15),
                     child: BreakdownCard(
                       machine: data['machineName'] ?? 'Unknown Machine',
-                      line: 'Production Line', 
+                      line: data['lineName'] ?? 'Unknown Line',
                       issue: data['description'] ?? 'No description',
-                      time: data['timestamp'] != null ? (data['timestamp'] as Timestamp).toDate().toString().split('.')[0] : 'Just now',
+                      time: reportedTime,
                       severity: data['severity'] ?? 'Unknown severity',
                     ),
                   );

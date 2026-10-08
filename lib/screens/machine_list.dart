@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import '../screens/screens.dart';
-import '../widgets/widgets.dart';
+
+import '../widgets/machine_card.dart';
 
 class MachineListScreen extends StatelessWidget {
   final String lineName;
@@ -87,6 +86,7 @@ class MachineListScreen extends StatelessWidget {
                   child: MachineCard(
                     machineId: machineId,
                     machineName: machineName,
+                    lineName: lineName,
                     status: status,
                     statusColor: statusColor,
                   ),
@@ -99,4 +99,3 @@ class MachineListScreen extends StatelessWidget {
     );
   }
 }
-
