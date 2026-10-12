@@ -2,12 +2,57 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import 'admin_screen.dart';
 import 'auth_screen.dart';
 import 'dashboard.dart';
-import 'admin_screen.dart';
 
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
+
+  Widget _buildErrorScaffold({
+    required BuildContext context,
+    required String message,
+  }) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Authentication'),
+        actions: [
+          IconButton(
+            tooltip: 'Sign out',
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+            },
+          ),
+        ],
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const SizedBox(height: 16),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: () async {
+                  await FirebaseAuth.instance.signOut();
+                },
+                icon: const Icon(Icons.logout),
+                label: const Text('Sign Out'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,11 +71,11 @@ class AuthGate extends StatelessWidget {
 
         final user = authSnapshot.data!;
 
-        return FutureBuilder<DocumentSnapshot>(
-          future: FirebaseFirestore.instance
+        return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+          stream: FirebaseFirestore.instance
               .collection('users')
               .doc(user.uid)
-              .get(),
+              .snapshots(),
           builder: (context, userSnapshot) {
             if (userSnapshot.connectionState == ConnectionState.waiting) {
               return const Scaffold(
@@ -39,40 +84,28 @@ class AuthGate extends StatelessWidget {
             }
 
             if (userSnapshot.hasError) {
-              return const Scaffold(
-                body: Center(child: Text('Failed to load user information.')),
+              return _buildErrorScaffold(
+                context: context,
+                message: 'Failed to load user profile: ${userSnapshot.error}',
               );
             }
 
-            if (!userSnapshot.hasData || !userSnapshot.data!.exists) {
-              return const Scaffold(
-                body: Center(child: Text('User profile not found.')),
-              );
-            }
-
-            final document = userSnapshot.data!;
-            final userData = document.data() as Map<String, dynamic>;
-
-            final role = userData['role'];
+            // Fallback for accounts created before role support or missing documents:
+            // Default to regular user role so existing accounts are never locked out.
+            final userData = userSnapshot.data?.data();
+            final role = userData?['role'] as String?;
 
             if (role == 'admin') {
               return const AdminScreen();
             }
 
-            if (role == 'user') {
-              return const DashboardScreen();
-            }
-
-            return const Scaffold(
-              body: Center(
-                child: Text(
-                  'Invalid or missing user role. Contact an administrator.',
-                ),
-              ),
-            );
+            // Regular user or unassigned/legacy profile:
+            // Route to standard DashboardScreen for backward compatibility.
+            return const DashboardScreen();
           },
         );
       },
     );
   }
 }
+
