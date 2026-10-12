@@ -59,6 +59,7 @@ class _AuthScreenState extends State<AuthScreen> {
               .set({
                 'uid': user.uid,
                 'email': user.email,
+                'role': 'user',
                 'createdAt': FieldValue.serverTimestamp(),
               });
         }
