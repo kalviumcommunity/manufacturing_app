@@ -29,6 +29,15 @@ class _InspectionFormScreenState extends State<InspectionFormScreen> {
   }
 
   Future<void> submitInspection() async {
+    final description = descriptionController.text.trim();
+
+    if (description.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter inspection details.')),
+      );
+      return;
+    }
+
     setState(() {
       isSubmitting = true;
     });
@@ -36,20 +45,25 @@ class _InspectionFormScreenState extends State<InspectionFormScreen> {
     try {
       final user = FirebaseAuth.instance.currentUser;
 
-      await FirebaseFirestore.instance.collection('inspections').add({
+      if (user == null) {
+        throw Exception('Please sign in to submit an inspection.');
+      }
+
+      await FirebaseFirestore.instance.collection('inspectionReports').add({
         'machineId': widget.machineId,
         'machineName': widget.machineName,
         'result': selectedResult,
-        'description': descriptionController.text.trim(),
-        'timestamp': FieldValue.serverTimestamp(),
-        'reportedBy': user?.uid,
+        'description': description,
+        'employeeId': user.uid,
+        'employeeEmail': user.email ?? '',
+        'createdAt': FieldValue.serverTimestamp(),
       });
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Inspection submitted successfully'),
+          content: Text('Inspection submitted successfully.'),
           backgroundColor: Colors.green,
         ),
       );

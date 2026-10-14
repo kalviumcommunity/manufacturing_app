@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'add_machine_screen.dart';
 import '../widgets/machine_status_summary_card.dart';
 import 'machine_details.dart';
 
 class AllMachinesScreen extends StatelessWidget {
-  const AllMachinesScreen({super.key});
+  final String? statusFilter;
+
+  const AllMachinesScreen({super.key, this.statusFilter});
 
   @override
   Widget build(BuildContext context) {
@@ -15,8 +18,31 @@ class AllMachinesScreen extends StatelessWidget {
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: Center(
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AddMachineScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.add),
+                label: const Text('Add Machine'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
-      body: StreamBuilder<QuerySnapshot>(
+      body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
         stream: FirebaseFirestore.instance.collection('machines').snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -34,11 +60,19 @@ class AllMachinesScreen extends StatelessWidget {
 
           final machines = snapshot.data?.docs ?? [];
 
-          if (machines.isEmpty) {
-            return const Center(
+          final filteredMachines = statusFilter == null
+              ? machines
+              : machines.where((machine) {
+                  return machine.data()['status'] == statusFilter;
+                }).toList();
+
+          if (filteredMachines.isEmpty) {
+            return Center(
               child: Text(
-                'No machines found.',
-                style: TextStyle(color: Colors.grey, fontSize: 16),
+                statusFilter == null
+                    ? 'No machines found.'
+                    : 'No machines found with status "$statusFilter".',
+                style: const TextStyle(color: Colors.grey, fontSize: 16),
               ),
             );
           }
@@ -129,7 +163,7 @@ class AllMachinesScreen extends StatelessWidget {
 
                 const SizedBox(height: 15),
 
-                ...machines.map((machine) {
+                ...filteredMachines.map((machine) {
                   final data = machine.data() as Map<String, dynamic>;
 
                   final machineId = data['machineId'] ?? '';

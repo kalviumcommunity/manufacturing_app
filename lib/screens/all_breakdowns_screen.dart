@@ -4,13 +4,17 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/breakdown_summary_card.dart';
 
 class AllBreakdownsScreen extends StatelessWidget {
-  const AllBreakdownsScreen({super.key});
+  final String? severityFilter;
+
+  const AllBreakdownsScreen({super.key, this.severityFilter});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Breakdowns'),
+        title: Text(severityFilter == null
+            ? 'Breakdowns'
+            : '$severityFilter Breakdowns'),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
@@ -79,6 +83,19 @@ class AllBreakdownsScreen extends StatelessWidget {
             return data['severity'] == 'Medium';
           }).length;
 
+          final lowCount = breakdowns.where((breakdown) {
+            final data = breakdown.data() as Map<String, dynamic>;
+
+            return data['severity'] == 'Low';
+          }).length;
+
+          final filteredBreakdowns = severityFilter == null
+              ? breakdowns
+              : breakdowns.where((breakdown) {
+                  final data = breakdown.data() as Map<String, dynamic>;
+                  return data['severity'] == severityFilter;
+                }).toList();
+
           return SingleChildScrollView(
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -108,7 +125,7 @@ class AllBreakdownsScreen extends StatelessWidget {
                         color: Colors.red,
                       ),
                     ),
-                    const SizedBox(width: 15),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: BreakdownSummaryCard(
                         title: 'Critical',
@@ -117,7 +134,7 @@ class AllBreakdownsScreen extends StatelessWidget {
                         color: Colors.red.shade800,
                       ),
                     ),
-                    const SizedBox(width: 15),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: BreakdownSummaryCard(
                         title: 'High',
@@ -126,13 +143,22 @@ class AllBreakdownsScreen extends StatelessWidget {
                         color: Colors.orange,
                       ),
                     ),
-                    const SizedBox(width: 15),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: BreakdownSummaryCard(
                         title: 'Medium',
                         value: mediumCount.toString(),
                         icon: Icons.warning,
                         color: Colors.amber.shade700,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: BreakdownSummaryCard(
+                        title: 'Low',
+                        value: lowCount.toString(),
+                        icon: Icons.info_outline,
+                        color: Colors.teal,
                       ),
                     ),
                   ],
@@ -147,8 +173,24 @@ class AllBreakdownsScreen extends StatelessWidget {
 
                 const SizedBox(height: 15),
 
-                ...breakdowns.map((breakdown) {
-                  final data = breakdown.data() as Map<String, dynamic>;
+                if (filteredBreakdowns.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    child: Center(
+                      child: Text(
+                        severityFilter == null
+                            ? 'No breakdowns reported.'
+                            : 'No breakdowns found with severity "$severityFilter".',
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  ...filteredBreakdowns.map((breakdown) {
+                    final data = breakdown.data() as Map<String, dynamic>;
 
                   final machineName = data['machineName'] ?? 'Unknown Machine';
 
