@@ -353,6 +353,12 @@ class _AdminScreenState extends State<AdminScreen> {
                   );
                 },
               ),
+              _buildStatCard(
+                title: 'Low Severity',
+                count: countSeverity('Low'),
+                icon: Icons.info_outline,
+                color: Colors.teal,
+              ),
             ]),
           ],
         );
@@ -500,9 +506,9 @@ class _AdminScreenState extends State<AdminScreen> {
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
-                            backgroundColor: roleColor.withValues(alpha: 0.12),
+                            backgroundColor: roleColor.withOpacity(0.12),
                             side: BorderSide(
-                              color: roleColor.withValues(alpha: 0.35),
+                              color: roleColor.withOpacity(0.35),
                             ),
                             visualDensity: VisualDensity.compact,
                           ),
