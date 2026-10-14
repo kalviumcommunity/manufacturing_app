@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -71,7 +70,7 @@ class MachineDetailsScreen extends StatelessWidget {
               }
               Navigator.pop(dialogContext, value);
             },
-            child: const Text('Submit for Verification'),
+            child: const Text('Submit Repair'),
           ),
         ],
       ),
@@ -84,30 +83,55 @@ class MachineDetailsScreen extends StatelessWidget {
     }
 
     try {
-      final callable = FirebaseFunctions.instanceFor(region: 'asia-south1')
-          .httpsCallable('reportRepair');
+      final user = FirebaseAuth.instance.currentUser;
 
-      await callable.call({'machineId': machineId, 'notes': notes.trim()});
+      // Update machine status in Firestore
+      final machineDocs = await FirebaseFirestore.instance
+          .collection('machines')
+          .where('machineId', isEqualTo: machineId)
+          .limit(1)
+          .get();
+
+      if (machineDocs.docs.isNotEmpty) {
+        await machineDocs.docs.first.reference.update({
+          'status': 'Running',
+          'lastFixedBy': user?.uid,
+          'lastFixedByEmail': user?.email ?? '',
+          'lastRepairNotes': notes.trim(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      } else {
+        await FirebaseFirestore.instance
+            .collection('machines')
+            .doc(machineId)
+            .update({
+          'status': 'Running',
+          'lastFixedBy': user?.uid,
+          'lastFixedByEmail': user?.email ?? '',
+          'lastRepairNotes': notes.trim(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+
+      // Log the repair in repairs collection
+      await FirebaseFirestore.instance.collection('repairs').add({
+        'machineId': machineId,
+        'machineName': machineName,
+        'lineName': lineName,
+        'notes': notes.trim(),
+        'repairedBy': user?.uid,
+        'repairedByEmail': user?.email ?? '',
+        'timestamp': FieldValue.serverTimestamp(),
+      });
 
       if (!context.mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Repair report submitted. Waiting for admin verification.',
+            'Machine repaired and returned to Running status!',
           ),
           backgroundColor: Colors.green,
-        ),
-      );
-    } on FirebaseFunctionsException catch (e) {
-      if (!context.mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Could not submit repair report: ${e.message ?? e.code}',
-          ),
-          backgroundColor: Colors.red,
         ),
       );
     } catch (e) {
@@ -115,7 +139,7 @@ class MachineDetailsScreen extends StatelessWidget {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Something went wrong: $e'),
+          content: Text('Could not submit repair report: $e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -222,7 +246,7 @@ class MachineDetailsScreen extends StatelessWidget {
                                 width: 65,
                                 height: 65,
                                 decoration: BoxDecoration(
-                                  color: Colors.blue.withValues(alpha: 0.1),
+                                  color: Colors.blue.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(15),
                                 ),
                                 child: const Icon(
@@ -284,7 +308,7 @@ class MachineDetailsScreen extends StatelessWidget {
                                     vertical: 9,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: statusColor.withValues(alpha: 0.1),
+                                    color: statusColor.withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Text(
@@ -335,8 +359,8 @@ class MachineDetailsScreen extends StatelessWidget {
                       ),
                     ),
 
-                    // Employees can request verification of a repair.
-                    if (isEmployee && currentStatus == 'Breakdown') ...[
+                    // When a machine is broken down, technicians or admins can report it fixed.
+                    if (currentStatus == 'Breakdown') ...[
                       const SizedBox(height: 12),
                       SizedBox(
                         width: double.infinity,
@@ -353,8 +377,8 @@ class MachineDetailsScreen extends StatelessWidget {
                       ),
                     ],
 
-                    // Only admins can create breakdown reports.
-                    if (isAdmin) ...[
+                    // When a machine is running or in maintenance, anyone on the floor can report a breakdown immediately.
+                    if (currentStatus != 'Breakdown') ...[
                       const SizedBox(height: 12),
                       SizedBox(
                         width: double.infinity,
@@ -378,18 +402,6 @@ class MachineDetailsScreen extends StatelessWidget {
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                           ),
-                        ),
-                      ),
-                    ],
-
-                    if (isEmployee &&
-                        currentStatus == 'Pending Verification') ...[
-                      const SizedBox(height: 15),
-                      const Text(
-                        'Your repair report is awaiting admin verification.',
-                        style: TextStyle(
-                          color: Colors.deepPurple,
-                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],

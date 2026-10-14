@@ -320,7 +320,9 @@ class _AdminScreenState extends State<AdminScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const AllBreakdownsScreen(),
+                      builder: (context) => const AllBreakdownsScreen(
+                        severityFilter: 'Critical',
+                      ),
                     ),
                   );
                 },
@@ -334,7 +336,9 @@ class _AdminScreenState extends State<AdminScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const AllBreakdownsScreen(),
+                      builder: (context) => const AllBreakdownsScreen(
+                        severityFilter: 'High',
+                      ),
                     ),
                   );
                 },
@@ -348,7 +352,9 @@ class _AdminScreenState extends State<AdminScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const AllBreakdownsScreen(),
+                      builder: (context) => const AllBreakdownsScreen(
+                        severityFilter: 'Medium',
+                      ),
                     ),
                   );
                 },
@@ -358,6 +364,16 @@ class _AdminScreenState extends State<AdminScreen> {
                 count: countSeverity('Low'),
                 icon: Icons.info_outline,
                 color: Colors.teal,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AllBreakdownsScreen(
+                        severityFilter: 'Low',
+                      ),
+                    ),
+                  );
+                },
               ),
             ]),
           ],
