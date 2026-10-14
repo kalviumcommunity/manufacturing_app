@@ -2,6 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import 'all_machines_screen.dart';
+import 'all_breakdowns_screen.dart';
+
 class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key});
 
@@ -42,28 +45,44 @@ class _AdminScreenState extends State<AdminScreen> {
     }
   }
 
+  // Reusable statistics card with optional click navigation.
   Widget _buildStatCard({
     required String title,
     required int count,
     required IconData icon,
     required Color color,
+    VoidCallback? onTap,
   }) {
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: color, size: 28),
-            const SizedBox(height: 12),
-            Text(
-              '$count',
-              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 4),
-            Text(title),
-          ],
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: color, size: 28),
+              const SizedBox(height: 12),
+              Text(
+                '$count',
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(title),
+              if (onTap != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'View details →',
+                  style: TextStyle(color: color, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
@@ -78,7 +97,7 @@ class _AdminScreenState extends State<AdminScreen> {
             ? 2
             : 1;
 
-        final spacing = 12.0;
+        const spacing = 12.0;
         final cardWidth =
             (constraints.maxWidth - spacing * (columns - 1)) / columns;
 
@@ -123,6 +142,7 @@ class _AdminScreenState extends State<AdminScreen> {
     );
   }
 
+  // MACHINE OVERVIEW
   Widget _buildMachineOverview() {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: FirebaseFirestore.instance.collection('machines').snapshots(),
@@ -167,27 +187,65 @@ class _AdminScreenState extends State<AdminScreen> {
             _buildStatGrid([
               _buildStatCard(
                 title: 'Total Machines',
-                count: machines.length,
+                count:machines.length, 
                 icon: Icons.factory,
                 color: Colors.blue,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AllMachinesScreen(),
+                    ),
+                  );
+                },
               ),
               _buildStatCard(
                 title: 'Running',
                 count: countStatus('Running'),
                 icon: Icons.play_circle_outline,
                 color: Colors.green,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AllMachinesScreen(
+                        statusFilter: 'Running',
+                      ),
+                    ),
+                  );
+                },
               ),
               _buildStatCard(
                 title: 'Breakdowns',
                 count: countStatus('Breakdown'),
                 icon: Icons.warning_amber,
                 color: Colors.red,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AllMachinesScreen(
+                        statusFilter: 'Breakdown',
+                      ),
+                    ),
+                  );
+                },
               ),
               _buildStatCard(
                 title: 'Maintenance',
                 count: countStatus('Maintenance'),
                 icon: Icons.build_outlined,
                 color: Colors.orange,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AllMachinesScreen(
+                         statusFilter: 'Maintenance',
+                      ),
+                    ),
+                  );
+                },
               ),
             ]),
           ],
@@ -196,6 +254,7 @@ class _AdminScreenState extends State<AdminScreen> {
     );
   }
 
+  // BREAKDOWN OVERVIEW
   Widget _buildBreakdownOverview() {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: FirebaseFirestore.instance.collection('breakdowns').snapshots(),
@@ -243,24 +302,56 @@ class _AdminScreenState extends State<AdminScreen> {
                 count: breakdowns.length,
                 icon: Icons.assignment_outlined,
                 color: Colors.blue,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AllBreakdownsScreen(),
+                    ),
+                  );
+                },
               ),
               _buildStatCard(
                 title: 'Critical',
                 count: countSeverity('Critical'),
                 icon: Icons.error_outline,
                 color: Colors.red,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AllBreakdownsScreen(),
+                    ),
+                  );
+                },
               ),
               _buildStatCard(
                 title: 'High Severity',
                 count: countSeverity('High'),
                 icon: Icons.priority_high,
                 color: Colors.deepOrange,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AllBreakdownsScreen(),
+                    ),
+                  );
+                },
               ),
               _buildStatCard(
                 title: 'Medium Severity',
                 count: countSeverity('Medium'),
                 icon: Icons.warning_amber,
-                color: Colors.amber.shade800,
+                color: Colors.amber,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AllBreakdownsScreen(),
+                    ),
+                  );
+                },
               ),
             ]),
           ],
@@ -269,6 +360,7 @@ class _AdminScreenState extends State<AdminScreen> {
     );
   }
 
+  // USER MANAGEMENT
   Widget _buildUserManagement() {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: FirebaseFirestore.instance.collection('users').snapshots(),
@@ -301,7 +393,6 @@ class _AdminScreenState extends State<AdminScreen> {
         final filteredUsers = allUsers.where((document) {
           final email = (document.data()['email'] as String? ?? '')
               .toLowerCase();
-
           return email.contains(_searchQuery);
         }).toList();
 
@@ -460,7 +551,6 @@ class _AdminScreenState extends State<AdminScreen> {
             const SizedBox(height: 8),
             const Text('Manage registered users and monitor your factory.'),
             const SizedBox(height: 24),
-
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(20),
@@ -468,7 +558,6 @@ class _AdminScreenState extends State<AdminScreen> {
               ),
             ),
             const SizedBox(height: 20),
-
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(20),
@@ -476,7 +565,6 @@ class _AdminScreenState extends State<AdminScreen> {
               ),
             ),
             const SizedBox(height: 20),
-
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(20),
