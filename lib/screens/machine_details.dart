@@ -35,6 +35,14 @@ class MachineDetailsScreen extends StatelessWidget {
   }
 
   Future<void> _reportFixed(BuildContext context) async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Please sign in first.')));
+      return;
+    }
+
     final notesController = TextEditingController();
 
     final notes = await showDialog<String>(
@@ -60,6 +68,7 @@ class MachineDetailsScreen extends StatelessWidget {
           ElevatedButton(
             onPressed: () {
               final value = notesController.text.trim();
+
               if (value.isEmpty) {
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
                   const SnackBar(
@@ -68,6 +77,7 @@ class MachineDetailsScreen extends StatelessWidget {
                 );
                 return;
               }
+
               Navigator.pop(dialogContext, value);
             },
             child: const Text('Submit Repair'),
@@ -83,54 +93,50 @@ class MachineDetailsScreen extends StatelessWidget {
     }
 
     try {
-      final user = FirebaseAuth.instance.currentUser;
+      final firestore = FirebaseFirestore.instance;
 
-      // Update machine status in Firestore
-      final machineDocs = await FirebaseFirestore.instance
+      // Find the machine by its machineId field.
+      final machineQuery = await firestore
           .collection('machines')
           .where('machineId', isEqualTo: machineId)
           .limit(1)
           .get();
 
-      if (machineDocs.docs.isNotEmpty) {
-        await machineDocs.docs.first.reference.update({
-          'status': 'Running',
-          'lastFixedBy': user?.uid,
-          'lastFixedByEmail': user?.email ?? '',
-          'lastRepairNotes': notes.trim(),
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-      } else {
-        await FirebaseFirestore.instance
-            .collection('machines')
-            .doc(machineId)
-            .update({
-          'status': 'Running',
-          'lastFixedBy': user?.uid,
-          'lastFixedByEmail': user?.email ?? '',
-          'lastRepairNotes': notes.trim(),
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
+      if (machineQuery.docs.isEmpty) {
+        throw Exception('Machine not found. No changes were made.');
       }
 
-      // Log the repair in repairs collection
-      await FirebaseFirestore.instance.collection('repairs').add({
+      final machineRef = machineQuery.docs.first.reference;
+      final repairRef = firestore.collection('repairs').doc();
+
+      // Commit the machine update and repair log together.
+      final batch = firestore.batch();
+
+      batch.update(machineRef, {
+        'status': 'Running',
+        'lastFixedBy': user.uid,
+        'lastFixedByEmail': user.email ?? '',
+        'lastRepairNotes': notes.trim(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      batch.set(repairRef, {
         'machineId': machineId,
         'machineName': machineName,
         'lineName': lineName,
         'notes': notes.trim(),
-        'repairedBy': user?.uid,
-        'repairedByEmail': user?.email ?? '',
+        'repairedBy': user.uid,
+        'repairedByEmail': user.email ?? '',
         'timestamp': FieldValue.serverTimestamp(),
       });
+
+      await batch.commit();
 
       if (!context.mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Machine repaired and returned to Running status!',
-          ),
+          content: Text('Machine repaired and returned to Running status!'),
           backgroundColor: Colors.green,
         ),
       );
