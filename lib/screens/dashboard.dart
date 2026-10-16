@@ -8,6 +8,7 @@ import '../widgets/production_line_card.dart';
 import '../widgets/stat_card.dart';
 import 'all_breakdowns_screen.dart';
 import 'all_machines_screen.dart';
+import 'recurring_faults_screen.dart';
 import 'settings_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -34,12 +35,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
       case 'Breakdowns':
         return const AllBreakdownsScreen();
 
+      case 'Fault Patterns':
+        return const RecurringFaultsScreen();
+
       case 'Settings':
         return const SettingsScreen();
 
       case 'Dashboard':
       default:
-        return const DashboardHomeContent();
+        return DashboardHomeContent(
+          onNavigateToFaults: () => changePage('Fault Patterns'),
+        );
     }
   }
 
@@ -59,6 +65,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             onBreakdownsTap: () {
               changePage('Breakdowns');
             },
+            onFaultsTap: () {
+              changePage('Fault Patterns');
+            },
             onSettingsTap: () {
               changePage('Settings');
             },
@@ -74,7 +83,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
 }
 
 class DashboardHomeContent extends StatelessWidget {
-  const DashboardHomeContent({super.key});
+  final VoidCallback? onNavigateToFaults;
+
+  const DashboardHomeContent({super.key, this.onNavigateToFaults});
 
   @override
   Widget build(BuildContext context) {
@@ -96,6 +107,92 @@ class DashboardHomeContent extends StatelessWidget {
             style: TextStyle(color: Colors.grey, fontSize: 16),
           ),
           const SizedBox(height: 25),
+
+          // ------------------------------------------------
+          // RECURRING FAULT ALERT STREAM
+          // ------------------------------------------------
+          StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+            stream: FirebaseFirestore.instance
+                .collection('breakdowns')
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) return const SizedBox.shrink();
+              final docs = snapshot.data!.docs;
+              final Map<String, int> machineCounts = {};
+              final Map<String, String> machineNames = {};
+              for (final doc in docs) {
+                final d = doc.data();
+                final id = d['machineId'] as String? ?? '';
+                if (id.isNotEmpty) {
+                  machineCounts[id] = (machineCounts[id] ?? 0) + 1;
+                  machineNames[id] = d['machineName'] as String? ?? id;
+                }
+              }
+              final recurring =
+                  machineCounts.entries.where((e) => e.value >= 2).toList();
+              if (recurring.isEmpty) return const SizedBox.shrink();
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 25),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.amber.shade400),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      color: Colors.amber.shade900,
+                      size: 28,
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Warning: ${recurring.length} Machine(s) with Recurring Faults',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              color: Colors.amber.shade900,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            'Recurring breakdowns detected before shift-end review.',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.brown.shade800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (onNavigateToFaults != null)
+                      ElevatedButton(
+                        onPressed: onNavigateToFaults,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.amber.shade800,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 8,
+                          ),
+                          textStyle: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        child: const Text('View Patterns'),
+                      ),
+                  ],
+                ),
+              );
+            },
+          ),
 
           // ------------------------------------------------
           // MACHINES STREAM (STAT CARDS + PRODUCTION LINES)

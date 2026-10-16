@@ -6,6 +6,7 @@ class DashboardSidebar extends StatelessWidget {
   final VoidCallback onDashboardTap;
   final VoidCallback onMachinesTap;
   final VoidCallback onBreakdownsTap;
+  final VoidCallback onFaultsTap;
   final VoidCallback onSettingsTap;
   final VoidCallback onLogoutTap;
 
@@ -15,6 +16,7 @@ class DashboardSidebar extends StatelessWidget {
     required this.onDashboardTap,
     required this.onMachinesTap,
     required this.onBreakdownsTap,
+    required this.onFaultsTap,
     required this.onSettingsTap,
     required this.onLogoutTap,
   });
@@ -81,6 +83,12 @@ class DashboardSidebar extends StatelessWidget {
             icon: Icons.warning_amber_outlined,
             selected: selectedItem == 'Breakdowns',
             onTap: onBreakdownsTap,
+          ),
+          _SidebarItem(
+            title: 'Fault Patterns',
+            icon: Icons.auto_graph_outlined,
+            selected: selectedItem == 'Fault Patterns',
+            onTap: onFaultsTap,
           ),
           _SidebarItem(
             title: 'Settings',
