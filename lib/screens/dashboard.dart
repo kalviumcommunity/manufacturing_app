@@ -9,6 +9,7 @@ import '../widgets/stat_card.dart';
 import 'all_breakdowns_screen.dart';
 import 'all_machines_screen.dart';
 import 'machine_details.dart';
+import 'recurring_faults_screen.dart';
 import 'settings_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -64,6 +65,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return const AllMachinesScreen();
       case 'Breakdowns':
         return const AllBreakdownsScreen();
+
+      case 'Fault Patterns':
+        return const RecurringFaultsScreen();
+
       case 'Settings':
         return const SettingsScreen();
       case 'Dashboard':
@@ -72,6 +77,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           onNavigateToMachines: () => changePage('Machines'),
           onNavigateToBreakdowns: () => changePage('Breakdowns'),
           onNavigateToSettings: () => changePage('Settings'),
+          onNavigateToFaults: () => changePage('Fault Patterns'),
         );
     }
   }
@@ -211,6 +217,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
             onMachinesTap: () => changePage('Machines'),
             onBreakdownsTap: () => changePage('Breakdowns'),
             onSettingsTap: () => changePage('Settings'),
+            onDashboardTap: () {
+              changePage('Dashboard');
+            },
+            onMachinesTap: () {
+              changePage('Machines');
+            },
+            onBreakdownsTap: () {
+              changePage('Breakdowns');
+            },
+            onFaultsTap: () {
+              changePage('Fault Patterns');
+            },
+            onSettingsTap: () {
+              changePage('Settings');
+            },
             onLogoutTap: () async {
               await FirebaseAuth.instance.signOut();
             },
@@ -233,6 +254,9 @@ class DashboardHomeContent extends StatelessWidget {
     required this.onNavigateToBreakdowns,
     required this.onNavigateToSettings,
   });
+  final VoidCallback? onNavigateToFaults;
+
+  const DashboardHomeContent({super.key, this.onNavigateToFaults});
 
   @override
   Widget build(BuildContext context) {
@@ -269,6 +293,64 @@ class DashboardHomeContent extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ------------------------------------------------
+          // TITLE
+          // ------------------------------------------------
+          const Text(
+            'Production Overview',
+            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Monitor your production lines and machine health',
+            style: TextStyle(color: Colors.grey, fontSize: 16),
+          ),
+          const SizedBox(height: 25),
+
+          // ------------------------------------------------
+          // RECURRING FAULT ALERT STREAM
+          // ------------------------------------------------
+          StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+            stream: FirebaseFirestore.instance
+                .collection('breakdowns')
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) return const SizedBox.shrink();
+              final docs = snapshot.data!.docs;
+              final Map<String, int> machineCounts = {};
+              final Map<String, String> machineNames = {};
+              for (final doc in docs) {
+                final d = doc.data();
+                final id = d['machineId'] as String? ?? '';
+                if (id.isNotEmpty) {
+                  machineCounts[id] = (machineCounts[id] ?? 0) + 1;
+                  machineNames[id] = d['machineName'] as String? ?? id;
+                }
+              }
+              final recurring =
+                  machineCounts.entries.where((e) => e.value >= 2).toList();
+              if (recurring.isEmpty) return const SizedBox.shrink();
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 25),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.amber.shade400),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      color: Colors.amber.shade900,
+                      size: 28,
+                    ),
+                    const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -345,6 +427,94 @@ class DashboardHomeContent extends StatelessWidget {
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                            'Warning: ${recurring.length} Machine(s) with Recurring Faults',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              color: Colors.amber.shade900,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            'Recurring breakdowns detected before shift-end review.',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.brown.shade800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (onNavigateToFaults != null)
+                      ElevatedButton(
+                        onPressed: onNavigateToFaults,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.amber.shade800,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 8,
+                          ),
+                          textStyle: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        child: const Text('View Patterns'),
+                      ),
+                  ],
+                ),
+              );
+            },
+          ),
+
+          // ------------------------------------------------
+          // MACHINES STREAM (STAT CARDS + PRODUCTION LINES)
+          // ------------------------------------------------
+          StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('machines')
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (snapshot.hasError) {
+                return const Text(
+                  'Failed to load machine data',
+                  style: TextStyle(color: Colors.red),
+                );
+              }
+
+              final machines = snapshot.data?.docs ?? [];
+              final totalMachines = machines.length;
+
+              final runningMachines = machines.where((machine) {
+                final data = machine.data() as Map<String, dynamic>;
+                return data['status'] == 'Running';
+              }).length;
+
+              final breakdownMachines = machines.where((machine) {
+                final data = machine.data() as Map<String, dynamic>;
+                return data['status'] == 'Breakdown';
+              }).length;
+
+              // Dynamically extract unique line names
+              final lineNames =
+                  machines
+                      .map((machine) {
+                        final data = machine.data() as Map<String, dynamic>;
+                        return (data['lineName'] ?? 'Unknown Line') as String;
+                      })
+                      .toSet()
+                      .toList()
+                    ..sort();
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
                       // CLEAN STAT CARDS
                       StatCard(

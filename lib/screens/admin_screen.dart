@@ -7,6 +7,7 @@ import '../utils/responsive.dart';
 import '../widgets/stat_card.dart';
 import 'all_machines_screen.dart';
 import 'all_breakdowns_screen.dart';
+import 'recurring_faults_screen.dart';
 
 class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key});
@@ -753,6 +754,81 @@ class _AdminScreenState extends State<AdminScreen> {
                 ),
                 const SizedBox(height: 32),
               ],
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Administration',
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            const Text('Manage registered users and monitor your factory.'),
+            const SizedBox(height: 24),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: _buildMachineOverview(),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: _buildBreakdownOverview(),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Card(
+              color: Colors.blue.shade50,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: Colors.blue.shade200),
+              ),
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.auto_graph_outlined,
+                    color: Colors.blue,
+                    size: 28,
+                  ),
+                ),
+                title: const Text(
+                  'Predictive Fault Pattern Intelligence',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                subtitle: const Text(
+                  'Analyze repeat breakdowns, high-risk machines, and line failure trends in real-time.',
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const RecurringFaultsScreen(),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 20),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: _buildUserManagement(),
+              ),
             ),
           ),
         ),

@@ -11,3 +11,4 @@ export 'machine_list.dart';
 export 'admin_screen.dart';
 export 'add_machine_screen.dart';
 export 'loading_screen.dart';
+export 'recurring_faults_screen.dart';
