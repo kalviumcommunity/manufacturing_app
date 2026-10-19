@@ -2,6 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
+import '../utils/responsive.dart';
+
 class AddMachineScreen extends StatefulWidget {
   const AddMachineScreen({super.key});
 
@@ -36,6 +39,7 @@ class _AddMachineScreenState extends State<AddMachineScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please sign in before adding a machine.'),
+          backgroundColor: AppColors.breakdown,
         ),
       );
       return;
@@ -52,7 +56,6 @@ class _AddMachineScreenState extends State<AddMachineScreen> {
           .collection('machines')
           .doc(machineId);
 
-      // Prevent accidentally overwriting an existing machine.
       final existingMachine = await machineRef.get();
 
       if (existingMachine.exists) {
@@ -64,6 +67,7 @@ class _AddMachineScreenState extends State<AddMachineScreen> {
         'machineName': machineName,
         'lineName': lineName,
         'status': _status,
+        'createdAt': FieldValue.serverTimestamp(),
       });
 
       if (!mounted) return;
@@ -71,7 +75,7 @@ class _AddMachineScreenState extends State<AddMachineScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Machine added successfully!'),
-          backgroundColor: Colors.green,
+          backgroundColor: AppColors.running,
         ),
       );
 
@@ -80,15 +84,14 @@ class _AddMachineScreenState extends State<AddMachineScreen> {
       if (!mounted) return;
 
       String message = 'Failed to add machine.';
-
       if (e is FirebaseException && e.code == 'permission-denied') {
-        message = 'Permission denied. Only an admin can add machines.';
+        message = 'Permission denied. Only an administrator can add machines.';
       } else if (e is Exception) {
         message = e.toString().replaceFirst('Exception: ', '');
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message), backgroundColor: Colors.red),
+        SnackBar(content: Text(message), backgroundColor: AppColors.breakdown),
       );
     } finally {
       if (mounted) {
@@ -100,138 +103,243 @@ class _AddMachineScreenState extends State<AddMachineScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Add Machine'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
       ),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+      body: SingleChildScrollView(
+        padding: Responsive.pagePadding(context),
+        child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600),
-            child: Card(
-              elevation: 4,
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const Icon(
-                        Icons.precision_manufacturing,
-                        size: 60,
-                        color: Colors.blue,
-                      ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        'Machine Details',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
+            constraints: const BoxConstraints(maxWidth: 580),
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: AppColors.cardBg,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.border),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: AppColors.border),
+                          ),
+                          child: const Icon(
+                            Icons.add_to_photos_rounded,
+                            color: AppColors.textPrimary,
+                            size: 26,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      TextFormField(
-                        controller: _machineIdController,
-                        decoration: const InputDecoration(
-                          labelText: 'Machine ID',
-                          hintText: 'e.g. M-104',
-                          prefixIcon: Icon(Icons.tag),
-                          border: OutlineInputBorder(),
+                        const SizedBox(width: 14),
+                        const Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Register New Unit',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            Text(
+                              'Add a new asset to the telemetry grid',
+                              style: TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 12.5,
+                              ),
+                            ),
+                          ],
                         ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Please enter a machine ID';
-                          }
+                      ],
+                    ),
+                    const SizedBox(height: 22),
+                    const Divider(height: 1),
+                    const SizedBox(height: 20),
 
-                          if (value.trim().contains('/')) {
-                            return 'Machine ID cannot contain "/"';
-                          }
-
-                          return null;
-                        },
+                    // MACHINE ID FIELD
+                    const Text(
+                      'Machine Identifier (ID)',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
                       ),
-                      const SizedBox(height: 16),
-
-                      TextFormField(
-                        controller: _machineNameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Machine Name',
-                          hintText: 'e.g. CNC Milling Machine',
-                          prefixIcon: Icon(Icons.precision_manufacturing),
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Please enter a machine name';
-                          }
-                          return null;
-                        },
+                    ),
+                    const SizedBox(height: 6),
+                    TextFormField(
+                      controller: _machineIdController,
+                      decoration: const InputDecoration(
+                        hintText: 'e.g. M-104 or CNC-02',
+                        prefixIcon: Icon(Icons.tag_rounded, color: AppColors.textSecondary),
                       ),
-                      const SizedBox(height: 16),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Please enter a machine ID';
+                        }
+                        return null;
+                      },
+                    ),
 
-                      TextFormField(
-                        controller: _lineNameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Production Line',
-                          hintText: 'e.g. Line A',
-                          prefixIcon: Icon(Icons.factory),
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Please enter a production line';
-                          }
-                          return null;
-                        },
+                    const SizedBox(height: 18),
+
+                    // MACHINE NAME FIELD
+                    const Text(
+                      'Machine Name / Model',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
                       ),
-                      const SizedBox(height: 16),
-
-                      DropdownButtonFormField<String>(
-                        initialValue: _status,
-                        decoration: const InputDecoration(
-                          labelText: 'Machine Status',
-                          prefixIcon: Icon(Icons.settings),
-                          border: OutlineInputBorder(),
-                        ),
-                        items: _statuses.map((status) {
-                          return DropdownMenuItem(
-                            value: status,
-                            child: Text(status),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          if (value != null) {
-                            setState(() => _status = value);
-                          }
-                        },
+                    ),
+                    const SizedBox(height: 6),
+                    TextFormField(
+                      controller: _machineNameController,
+                      decoration: const InputDecoration(
+                        hintText: 'e.g. CNC Milling Unit A',
+                        prefixIcon: Icon(Icons.precision_manufacturing_rounded,
+                            color: AppColors.textSecondary),
                       ),
-                      const SizedBox(height: 24),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Please enter a machine name';
+                        }
+                        return null;
+                      },
+                    ),
 
-                      ElevatedButton.icon(
+                    const SizedBox(height: 18),
+
+                    // LINE NAME FIELD
+                    const Text(
+                      'Production Line Assignment',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextFormField(
+                      controller: _lineNameController,
+                      decoration: const InputDecoration(
+                        hintText: 'e.g. Line 1 - Stamping',
+                        prefixIcon:
+                            Icon(Icons.factory_rounded, color: AppColors.textSecondary),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Please assign a production line';
+                        }
+                        return null;
+                      },
+                    ),
+
+                    const SizedBox(height: 22),
+
+                    // INITIAL STATUS
+                    const Text(
+                      'Initial Operating Status',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: _statuses.map((s) {
+                        final isSelected = _status == s;
+                        final color = AppColors.getStatusColor(s);
+
+                        return InkWell(
+                          onTap: () => setState(() => _status = s),
+                          borderRadius: BorderRadius.circular(12),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 150),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isSelected ? color : color.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isSelected ? color : color.withValues(alpha: 0.3),
+                                width: isSelected ? 1.8 : 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: isSelected ? Colors.white : color,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  s,
+                                  style: TextStyle(
+                                    color: isSelected ? Colors.white : color,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+
+                    const SizedBox(height: 30),
+
+                    // SUBMIT BUTTON
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton.icon(
                         onPressed: _isSaving ? null : _saveMachine,
                         icon: _isSaving
                             ? const SizedBox(
-                                width: 18,
-                                height: 18,
+                                width: 20,
+                                height: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
+                                  color: Colors.white,
                                 ),
                               )
-                            : const Icon(Icons.add),
-                        label: Text(_isSaving ? 'Saving...' : 'Add Machine'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
+                            : const Icon(Icons.check_rounded, size: 20),
+                        label: Text(
+                          _isSaving ? 'Registering...' : 'Register Machine',
+                          style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),

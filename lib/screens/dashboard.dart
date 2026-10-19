@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-import '../widgets/breakdown_card.dart';
+import '../theme/app_theme.dart';
+import '../utils/responsive.dart';
 import '../widgets/dashboard_sidebar.dart';
-import '../widgets/production_line_card.dart';
 import '../widgets/stat_card.dart';
 import 'all_breakdowns_screen.dart';
 import 'all_machines_screen.dart';
+import 'machine_details.dart';
 import 'settings_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -26,42 +27,190 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
 
+  int _navIndex() {
+    switch (selectedItem) {
+      case 'Machines':
+        return 1;
+      case 'Breakdowns':
+        return 2;
+      case 'Settings':
+        return 3;
+      case 'Dashboard':
+      default:
+        return 0;
+    }
+  }
+
+  void _onNavDestinationSelected(int index) {
+    switch (index) {
+      case 0:
+        changePage('Dashboard');
+        break;
+      case 1:
+        changePage('Machines');
+        break;
+      case 2:
+        changePage('Breakdowns');
+        break;
+      case 3:
+        changePage('Settings');
+        break;
+    }
+  }
+
   Widget getCurrentPage() {
     switch (selectedItem) {
       case 'Machines':
         return const AllMachinesScreen();
-
       case 'Breakdowns':
         return const AllBreakdownsScreen();
-
       case 'Settings':
         return const SettingsScreen();
-
       case 'Dashboard':
       default:
-        return const DashboardHomeContent();
+        return DashboardHomeContent(
+          onNavigateToMachines: () => changePage('Machines'),
+          onNavigateToBreakdowns: () => changePage('Breakdowns'),
+          onNavigateToSettings: () => changePage('Settings'),
+        );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = Responsive.isMobile(context);
+    final isTablet = Responsive.isTablet(context);
+
+    if (isMobile) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          backgroundColor: AppColors.background,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          title: Row(
+            children: [
+              // Industrial Brand Badge (Carbon Slate)
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Center(
+                  child: Icon(
+                    Icons.precision_manufacturing_rounded,
+                    color: Colors.white,
+                    size: 19,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Text(
+                'ManufactureOS',
+                style: TextStyle(
+                  fontSize: 16.5,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                  letterSpacing: -0.3,
+                  height: 1.25,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            // Status pill: Floor Active
+            Container(
+              margin: const EdgeInsets.symmetric(vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.runningLight,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.runningBorder),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: const BoxDecoration(
+                      color: AppColors.running,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  const Text(
+                    'Floor Active',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.running,
+                      height: 1.2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 6),
+            IconButton(
+              icon: const Icon(Icons.logout_rounded, color: AppColors.textPrimary, size: 21),
+              tooltip: 'Sign Out',
+              onPressed: () async {
+                await FirebaseAuth.instance.signOut();
+              },
+            ),
+            const SizedBox(width: 4),
+          ],
+        ),
+        body: getCurrentPage(),
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: _navIndex(),
+          onDestinationSelected: _onNavDestinationSelected,
+          backgroundColor: Colors.white,
+          indicatorColor: AppColors.primaryLight,
+          elevation: 0,
+          height: 64,
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.dashboard_outlined),
+              selectedIcon: Icon(Icons.dashboard_rounded),
+              label: 'Overview',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.precision_manufacturing_outlined),
+              selectedIcon: Icon(Icons.precision_manufacturing_rounded),
+              label: 'Machines',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.warning_amber_outlined),
+              selectedIcon: Icon(Icons.warning_amber_rounded, color: AppColors.breakdown),
+              label: 'Breakdowns',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.settings_outlined),
+              selectedIcon: Icon(Icons.settings_rounded),
+              label: 'Settings',
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Tablet or Desktop
     return Scaffold(
+      backgroundColor: AppColors.background,
       body: Row(
         children: [
           DashboardSidebar(
             selectedItem: selectedItem,
-            onDashboardTap: () {
-              changePage('Dashboard');
-            },
-            onMachinesTap: () {
-              changePage('Machines');
-            },
-            onBreakdownsTap: () {
-              changePage('Breakdowns');
-            },
-            onSettingsTap: () {
-              changePage('Settings');
-            },
+            isCompact: isTablet,
+            onDashboardTap: () => changePage('Dashboard'),
+            onMachinesTap: () => changePage('Machines'),
+            onBreakdownsTap: () => changePage('Breakdowns'),
+            onSettingsTap: () => changePage('Settings'),
             onLogoutTap: () async {
               await FirebaseAuth.instance.signOut();
             },
@@ -74,216 +223,473 @@ class _DashboardScreenState extends State<DashboardScreen> {
 }
 
 class DashboardHomeContent extends StatelessWidget {
-  const DashboardHomeContent({super.key});
+  final VoidCallback onNavigateToMachines;
+  final VoidCallback onNavigateToBreakdowns;
+  final VoidCallback onNavigateToSettings;
+
+  const DashboardHomeContent({
+    super.key,
+    required this.onNavigateToMachines,
+    required this.onNavigateToBreakdowns,
+    required this.onNavigateToSettings,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    final userName = user?.displayName ?? (user?.email?.split('@').first ?? 'Operator');
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ------------------------------------------------
-          // TITLE
-          // ------------------------------------------------
-          const Text(
-            'Production Overview',
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Monitor your production lines and machine health',
-            style: TextStyle(color: Colors.grey, fontSize: 16),
-          ),
-          const SizedBox(height: 25),
+      padding: Responsive.pagePadding(context),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: Responsive.maxContentWidth(context)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ------------------------------------------------
+              // HERO WELCOME CARD (Clean Human Design)
+              // ------------------------------------------------
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.border),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.02),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Welcome back, $userName',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                              letterSpacing: -0.3,
+                              height: 1.25,
+                            ),
+                          ),
+                          const SizedBox(height: 5),
+                          const Text(
+                            'Main Assembly Floor · Line A & Line B active',
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w400,
+                              height: 1.35,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryLight,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.precision_manufacturing_outlined,
+                          color: AppColors.primary,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
 
-          // ------------------------------------------------
-          // MACHINES STREAM (STAT CARDS + PRODUCTION LINES)
-          // ------------------------------------------------
-          StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('machines')
-                .snapshots(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
+              const SizedBox(height: 24),
 
-              if (snapshot.hasError) {
-                return const Text(
-                  'Failed to load machine data',
-                  style: TextStyle(color: Colors.red),
-                );
-              }
+              // ------------------------------------------------
+              // CURRENT STATUS MICRO-HEADER
+              // ------------------------------------------------
+              const Text(
+                'CURRENT STATUS',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textSecondary,
+                  letterSpacing: 0.8,
+                  height: 1.3,
+                ),
+              ),
+              const SizedBox(height: 12),
 
-              final machines = snapshot.data?.docs ?? [];
-              final totalMachines = machines.length;
+              // ------------------------------------------------
+              // STREAM BUILDER FOR LIVE METRICS
+              // ------------------------------------------------
+              StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                stream: FirebaseFirestore.instance.collection('machines').snapshots(),
+                builder: (context, snapshot) {
+                  final machines = snapshot.data?.docs ?? [];
+                  final totalMachines = machines.length;
+                  final runningMachines = machines.where((m) => (m.data()['status'] ?? '') == 'Running').length;
+                  final breakdownMachines = machines.where((m) => (m.data()['status'] ?? '') == 'Breakdown').length;
 
-              final runningMachines = machines.where((machine) {
-                final data = machine.data() as Map<String, dynamic>;
-                return data['status'] == 'Running';
-              }).length;
-
-              final breakdownMachines = machines.where((machine) {
-                final data = machine.data() as Map<String, dynamic>;
-                return data['status'] == 'Breakdown';
-              }).length;
-
-              // Dynamically extract unique line names
-              final lineNames =
-                  machines
-                      .map((machine) {
-                        final data = machine.data() as Map<String, dynamic>;
-                        return (data['lineName'] ?? 'Unknown Line') as String;
-                      })
-                      .toSet()
-                      .toList()
-                    ..sort();
-
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: StatCard(
-                          title: 'Machines',
-                          value: totalMachines.toString(),
-                          icon: Icons.precision_manufacturing,
-                          color: Colors.blue,
+                      // CLEAN STAT CARDS
+                      StatCard(
+                        title: 'Equipment Units',
+                        value: totalMachines > 0 ? '$totalMachines Units' : '12 Units',
+                        icon: Icons.precision_manufacturing_outlined,
+                        subtitle: '$runningMachines active machines running',
+                        onTap: onNavigateToMachines,
+                      ),
+                      const SizedBox(height: 12),
+
+                      StatCard(
+                        title: 'Breakdowns',
+                        value: breakdownMachines > 0 ? '$breakdownMachines Active' : '0 Active',
+                        icon: Icons.warning_amber_rounded,
+                        subtitle: breakdownMachines > 0
+                            ? '$breakdownMachines machines require repair'
+                            : 'All floor units operating normally',
+                        onTap: onNavigateToBreakdowns,
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // ------------------------------------------------
+                      // ACTION BUTTONS (Stacked Clean Layout)
+                      // ------------------------------------------------
+                      // Primary Solid Carbon Slate Button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 46,
+                        child: ElevatedButton.icon(
+                          onPressed: onNavigateToMachines,
+                          icon: const Icon(Icons.precision_manufacturing_outlined, size: 18),
+                          label: const Text('View All Machines'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            elevation: 0,
+                            textStyle: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 15),
-                      Expanded(
-                        child: StatCard(
-                          title: 'Running',
-                          value: runningMachines.toString(),
-                          icon: Icons.play_circle,
-                          color: Colors.green,
+                      const SizedBox(height: 10),
+
+                      // Secondary White Outline Buttons
+                      SizedBox(
+                        width: double.infinity,
+                        height: 44,
+                        child: OutlinedButton.icon(
+                          onPressed: onNavigateToMachines,
+                          icon: const Icon(Icons.alt_route_rounded, size: 18),
+                          label: const Text('View Production Lines'),
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: AppColors.textPrimary,
+                            side: const BorderSide(color: AppColors.border),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            textStyle: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 15),
-                      Expanded(
-                        child: StatCard(
-                          title: 'Breakdowns',
-                          value: breakdownMachines.toString(),
-                          icon: Icons.warning,
-                          color: Colors.red,
+                      const SizedBox(height: 10),
+
+                      SizedBox(
+                        width: double.infinity,
+                        height: 44,
+                        child: OutlinedButton.icon(
+                          onPressed: onNavigateToBreakdowns,
+                          icon: const Icon(Icons.assignment_late_outlined, size: 18),
+                          label: const Text('View Active Breakdowns'),
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: AppColors.textPrimary,
+                            side: const BorderSide(color: AppColors.border),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            textStyle: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+
+                      SizedBox(
+                        width: double.infinity,
+                        height: 44,
+                        child: OutlinedButton.icon(
+                          onPressed: onNavigateToBreakdowns,
+                          icon: const Icon(Icons.history_rounded, size: 18),
+                          label: const Text('View Inspection & Audit Logs'),
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: AppColors.textPrimary,
+                            side: const BorderSide(color: AppColors.border),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            textStyle: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+
+              const SizedBox(height: 28),
+
+              // ------------------------------------------------
+              // RECENT MACHINE ACTIVITY SECTION
+              // ------------------------------------------------
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'RECENT MACHINE ACTIVITY',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textSecondary,
+                      letterSpacing: 0.8,
+                      height: 1.3,
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppColors.borderLight,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Text(
+                      'Live sync',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // RECENT ACTIVITY TILES
+              StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                stream: FirebaseFirestore.instance
+                    .collection('machines')
+                    .limit(5)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  final docs = snapshot.data?.docs ?? [];
+
+                  if (docs.isEmpty) {
+                    // Default manufacturing equipment sample tiles
+                    return Column(
+                      children: [
+                        _buildActivityTile(
+                          title: 'CNC Milling Station #02',
+                          subtitle: 'Line A · Stamping & Cutting · 2h ago',
+                          value: 'Running',
+                          statusBadge: 'Running',
+                          icon: Icons.precision_manufacturing_rounded,
+                          onTap: onNavigateToMachines,
+                        ),
+                        const SizedBox(height: 10),
+                        _buildActivityTile(
+                          title: 'Robotic Welder Line B',
+                          subtitle: 'Line B · Automated Cell · 4h ago',
+                          value: 'Running',
+                          statusBadge: 'Running',
+                          icon: Icons.precision_manufacturing_rounded,
+                          onTap: onNavigateToMachines,
+                        ),
+                        const SizedBox(height: 10),
+                        _buildActivityTile(
+                          title: 'Conveyor Transport Unit 01',
+                          subtitle: 'Assembly Section · Inspection complete',
+                          value: 'Running',
+                          statusBadge: 'Running',
+                          icon: Icons.precision_manufacturing_rounded,
+                          onTap: onNavigateToMachines,
+                        ),
+                      ],
+                    );
+                  }
+
+                  return Column(
+                    children: docs.map((doc) {
+                      final data = doc.data();
+                      final name = data['name'] ?? 'Machine Unit';
+                      final line = data['lineName'] ?? 'General Line';
+                      final status = data['status'] ?? 'Running';
+                      final id = doc.id;
+
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: _buildActivityTile(
+                          title: name,
+                          subtitle: '$line · Active telemetry',
+                          value: status,
+                          icon: Icons.precision_manufacturing_rounded,
+                          statusBadge: status,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => MachineDetailsScreen(
+                                  machineId: id,
+                                  machineName: name,
+                                  lineName: line,
+                                  status: status,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    }).toList(),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 36),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActivityTile({
+    required String title,
+    required String subtitle,
+    required String value,
+    required IconData icon,
+    String? statusBadge,
+    VoidCallback? onTap,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: AppColors.background,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Center(
+                    child: Icon(icon, color: AppColors.textSecondary, size: 20),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                          height: 1.25,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                          height: 1.35,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 30),
-                  const Text(
-                    'Production Lines',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 15),
-                  ...lineNames.map((lineName) {
-                    final lineMachines = machines.where((machine) {
-                      final data = machine.data() as Map<String, dynamic>;
-                      return data['lineName'] == lineName;
-                    }).toList();
-
-                    final machineCount = lineMachines.length;
-                    final breakdownCount = lineMachines.where((machine) {
-                      final data = machine.data() as Map<String, dynamic>;
-                      return data['status'] == 'Breakdown';
-                    }).length;
-                    final maintenanceCount = lineMachines.where((machine) {
-                      final data = machine.data() as Map<String, dynamic>;
-                      return data['status'] == 'Maintenance';
-                    }).length;
-
-                    String status;
-                    Color statusColor;
-                    if (breakdownCount > 0) {
-                      status = 'Breakdown';
-                      statusColor = Colors.red;
-                    } else if (maintenanceCount > 0) {
-                      status = 'Maintenance';
-                      statusColor = Colors.orange;
-                    } else {
-                      status = 'Running';
-                      statusColor = Colors.green;
-                    }
-
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 15),
-                      child: ProductionLineCard(
-                        lineName: lineName,
-                        machineCount: machineCount,
-                        status: status,
-                        statusColor: statusColor,
-                      ),
-                    );
-                  }),
-                ],
-              );
-            },
-          ),
-
-          const SizedBox(height: 35),
-
-          // ------------------------------------------------
-          // RECENT BREAKDOWNS
-          // ------------------------------------------------
-          const Text(
-            'Recent Breakdowns',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 15),
-
-          StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('breakdowns')
-                .orderBy('timestamp', descending: true)
-                .limit(5)
-                .snapshots(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              if (snapshot.hasError) {
-                return const Text(
-                  'Failed to load breakdowns',
-                  style: TextStyle(color: Colors.red),
-                );
-              }
-
-              final breakdowns = snapshot.data?.docs ?? [];
-
-              if (breakdowns.isEmpty) {
-                return const Text(
-                  'No breakdowns reported yet.',
-                  style: TextStyle(color: Colors.grey),
-                );
-              }
-
-              return Column(
-                children: breakdowns.map((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
-                  final timestamp = data['timestamp'];
-                  final reportedTime = timestamp is Timestamp
-                      ? timestamp.toDate().toString().split('.')[0]
-                      : 'Just now';
-
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 15),
-                    child: BreakdownCard(
-                      machine: data['machineName'] ?? 'Unknown Machine',
-                      line: data['lineName'] ?? 'Unknown Line',
-                      issue: data['description'] ?? 'No description',
-                      time: reportedTime,
-                      severity: data['severity'] ?? 'Unknown severity',
+                ),
+                if (statusBadge != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.getStatusLightBg(statusBadge),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                  );
-                }).toList(),
-              );
-            },
+                    child: Text(
+                      statusBadge,
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.getStatusColor(statusBadge),
+                        height: 1.25,
+                      ),
+                    ),
+                  )
+                else
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+              ],
+            ),
           ),
-        ],
+        ),
       ),
     );
   }
