@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import '../theme/app_theme.dart';
+import '../utils/responsive.dart';
+
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
 
@@ -11,11 +14,12 @@ class AuthScreen extends StatefulWidget {
 
 class _AuthScreenState extends State<AuthScreen> {
   final emailController = TextEditingController();
-
   final passwordController = TextEditingController();
 
   bool isLogin = true;
   bool isLoading = false;
+  bool obscurePassword = true;
+  String? errorMessage;
 
   @override
   void dispose() {
@@ -26,18 +30,18 @@ class _AuthScreenState extends State<AuthScreen> {
 
   Future<void> authenticate() async {
     final email = emailController.text.trim();
-
     final password = passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter email and password')),
-      );
+      setState(() {
+        errorMessage = 'Please enter both your email and password.';
+      });
       return;
     }
 
     setState(() {
       isLoading = true;
+      errorMessage = null;
     });
 
     try {
@@ -66,35 +70,31 @@ class _AuthScreenState extends State<AuthScreen> {
       }
     } on FirebaseAuthException catch (e) {
       String message;
-
       if (e.code == 'user-not-found') {
-        message = 'No account found';
+        message = 'No account found with this email.';
       } else if (e.code == 'wrong-password') {
-        message = 'Incorrect password';
+        message = 'Incorrect password. Please try again.';
       } else if (e.code == 'email-already-in-use') {
-        message = 'An account already exists with this email';
+        message = 'An account already exists with this email address.';
       } else if (e.code == 'weak-password') {
-        message = 'Password is too weak';
+        message = 'Password should be at least 6 characters.';
       } else if (e.code == 'invalid-email') {
-        message = 'Invalid email address';
+        message = 'Please provide a valid email format.';
       } else {
-        message = e.message ?? 'Authentication failed';
+        message = e.message ?? 'Authentication failed.';
       }
 
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message), backgroundColor: Colors.red),
-      );
+      if (mounted) {
+        setState(() {
+          errorMessage = message;
+        });
+      }
     } catch (e) {
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Something went wrong: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        setState(() {
+          errorMessage = 'An unexpected error occurred: $e';
+        });
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -106,97 +106,280 @@ class _AuthScreenState extends State<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = Responsive.isMobile(context);
+
     return Scaffold(
+      backgroundColor: AppColors.background,
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(25),
-          child: Container(
-            width: 420,
-            padding: const EdgeInsets.all(30),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
-                  blurRadius: 20,
-                ),
-              ],
-            ),
+          padding: EdgeInsets.symmetric(
+            horizontal: isMobile ? 20 : 32,
+            vertical: 36,
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 380),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(
-                  Icons.precision_manufacturing,
-                  color: Colors.blue,
-                  size: 55,
+                // BRAND HEADER
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Center(
+                        child: Text(
+                          'M',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'ManufactureOS',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                        letterSpacing: -0.3,
+                        height: 1.25,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 15),
+                const SizedBox(height: 6),
                 const Text(
-                  'Manufacturing Monitor',
-                  style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  isLogin ? 'Login to your account' : 'Create your account',
-                  style: const TextStyle(color: Colors.grey),
-                ),
-                const SizedBox(height: 30),
-                TextField(
-                  controller: emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
-                    labelText: 'Email',
-                    prefixIcon: const Icon(Icons.email_outlined),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
+                  'Industrial Machine & Telemetry Grid',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w400,
+                    height: 1.35,
                   ),
                 ),
-                const SizedBox(height: 15),
-                TextField(
-                  controller: passwordController,
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    labelText: 'Password',
-                    prefixIcon: const Icon(Icons.lock_outline),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
+
+                const SizedBox(height: 28),
+
+                // WHITE AUTH CARD (Matches AidGrid Image 2)
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppColors.border,
+                      width: 1,
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 25),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: isLoading ? null : authenticate,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-                    ),
-                    child: isLoading
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // SECTION MICRO-HEADER
+                      Text(
+                        isLogin ? 'OPERATOR SIGN IN' : 'REGISTER OPERATOR',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textSecondary,
+                          letterSpacing: 0.8,
+                          height: 1.3,
+                        ),
+                      ),
+
+                      const SizedBox(height: 18),
+
+                      if (errorMessage != null) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: AppColors.breakdownLight,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppColors.breakdownBorder),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.error_outline_rounded,
+                                  color: AppColors.breakdown, size: 16),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  errorMessage!,
+                                  style: const TextStyle(
+                                    color: AppColors.breakdown,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+
+                      // EMAIL FIELD
+                      TextField(
+                        controller: emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+                        decoration: InputDecoration(
+                          hintText: 'Email address',
+                          hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 13.5),
+                          prefixIcon: const Icon(Icons.mail_outline_rounded,
+                              color: AppColors.textSecondary, size: 20),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                          fillColor: Colors.white,
+                          filled: true,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(color: AppColors.border),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(color: AppColors.border),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 14),
+
+                      // PASSWORD FIELD
+                      TextField(
+                        controller: passwordController,
+                        obscureText: obscurePassword,
+                        style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+                        decoration: InputDecoration(
+                          hintText: 'Password',
+                          hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 13.5),
+                          prefixIcon: const Icon(Icons.lock_outline_rounded,
+                              color: AppColors.textSecondary, size: 20),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              obscurePassword
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
+                              color: AppColors.textSecondary,
+                              size: 18,
                             ),
-                          )
-                        : Text(isLogin ? 'Login' : 'Sign Up'),
+                            onPressed: () {
+                              setState(() {
+                                obscurePassword = !obscurePassword;
+                              });
+                            },
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                          fillColor: Colors.white,
+                          filled: true,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(color: AppColors.border),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(color: AppColors.border),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // PRIMARY SOLID CARBON SLATE BUTTON
+                      SizedBox(
+                        width: double.infinity,
+                        height: 46,
+                        child: ElevatedButton(
+                          onPressed: isLoading ? null : authenticate,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: isLoading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  ),
+                                )
+                              : Text(
+                                  isLogin ? 'Sign In' : 'Register',
+                                  style: const TextStyle(
+                                    fontSize: 14.5,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 15),
-                TextButton(
-                  onPressed: isLoading
-                      ? null
-                      : () {
-                          setState(() {
-                            isLogin = !isLogin;
-                          });
-                        },
-                  child: Text(
-                    isLogin
-                        ? 'Create a new account'
-                        : 'Already have an account? Login',
+
+                const SizedBox(height: 20),
+
+                // FOOTER TOGGLE
+                Center(
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        isLogin = !isLogin;
+                        errorMessage = null;
+                      });
+                    },
+                    child: RichText(
+                      text: TextSpan(
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          color: AppColors.textSecondary,
+                          fontSize: 13,
+                          height: 1.35,
+                        ),
+                        children: [
+                          TextSpan(
+                            text: isLogin
+                                ? "Don't have an account? "
+                                : "Already have an account? ",
+                          ),
+                          TextSpan(
+                            text: isLogin ? 'Register as operator' : 'Sign In',
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w700,
+                              height: 1.35,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ],

@@ -2,6 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
+import '../utils/responsive.dart';
+import '../widgets/stat_card.dart';
 import 'all_machines_screen.dart';
 import 'all_breakdowns_screen.dart';
 import 'recurring_faults_screen.dart';
@@ -15,7 +18,6 @@ class AdminScreen extends StatefulWidget {
 
 class _AdminScreenState extends State<AdminScreen> {
   final TextEditingController _searchController = TextEditingController();
-
   String _searchQuery = '';
 
   @override
@@ -27,143 +29,84 @@ class _AdminScreenState extends State<AdminScreen> {
   Color _roleColor(String role) {
     switch (role) {
       case 'admin':
-        return Colors.deepPurple;
+        return AppColors.pending;
       case 'user':
-        return Colors.green;
+        return AppColors.running;
       default:
-        return Colors.orange;
+        return AppColors.maintenance;
     }
   }
 
   String _roleLabel(String role) {
     switch (role) {
       case 'admin':
-        return 'Admin';
+        return 'Administrator';
       case 'user':
-        return 'User';
+        return 'Floor Operator';
       default:
         return 'Unassigned';
     }
   }
 
-  // Reusable statistics card with optional click navigation.
-  Widget _buildStatCard({
-    required String title,
-    required int count,
-    required IconData icon,
-    required Color color,
-    VoidCallback? onTap,
-  }) {
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: color, size: 28),
-              const SizedBox(height: 12),
-              Text(
-                '$count',
-                style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(title),
-              if (onTap != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'View details →',
-                  style: TextStyle(color: color, fontWeight: FontWeight.w600),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatGrid(List<Widget> cards) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final columns = constraints.maxWidth >= 850
-            ? 4
-            : constraints.maxWidth >= 520
-            ? 2
-            : 1;
-
-        const spacing = 12.0;
-        final cardWidth =
-            (constraints.maxWidth - spacing * (columns - 1)) / columns;
-
-        return Wrap(
-          spacing: spacing,
-          runSpacing: spacing,
-          children: cards
-              .map((card) => SizedBox(width: cardWidth, child: card))
-              .toList(),
-        );
-      },
-    );
-  }
-
-  Widget _buildSectionTitle({
+  Widget _buildSectionHeader({
     required IconData icon,
     required String title,
     required String subtitle,
+    Widget? action,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Row(
           children: [
-            Icon(icon, size: 28),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 21,
-                  fontWeight: FontWeight.bold,
-                ),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.border),
               ),
+              child: Icon(icon, color: AppColors.textPrimary, size: 19),
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                ),
+              ],
             ),
           ],
         ),
-        const SizedBox(height: 8),
-        Text(subtitle),
-        const SizedBox(height: 20),
+        ?action,
       ],
     );
   }
 
-  // MACHINE OVERVIEW
   Widget _buildMachineOverview() {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: FirebaseFirestore.instance.collection('machines').snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return const Card(
-            child: Padding(
-              padding: EdgeInsets.all(16),
-              child: Text(
-                'Could not load machine statistics. '
-                'Check Firestore permissions.',
-              ),
-            ),
-          );
+          return const Text('Could not load machine statistics.');
         }
 
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
             child: Padding(
-              padding: EdgeInsets.all(24),
+              padding: EdgeInsets.all(20),
               child: CircularProgressIndicator(),
             ),
           );
@@ -172,110 +115,131 @@ class _AdminScreenState extends State<AdminScreen> {
         final machines = snapshot.data?.docs ?? [];
 
         int countStatus(String status) {
-          return machines.where((machine) {
-            return machine.data()['status'] == status;
-          }).length;
+          return machines.where((m) => (m.data()['status'] ?? '') == status).length;
         }
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildSectionTitle(
-              icon: Icons.precision_manufacturing,
-              title: 'Machine Overview',
-              subtitle: 'Live status of factory machines',
-            ),
-            _buildStatGrid([
-              _buildStatCard(
-                title: 'Total Machines',
-                count:machines.length, 
-                icon: Icons.factory,
-                color: Colors.blue,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const AllMachinesScreen(),
-                    ),
-                  );
-                },
-              ),
-              _buildStatCard(
-                title: 'Running',
-                count: countStatus('Running'),
-                icon: Icons.play_circle_outline,
-                color: Colors.green,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const AllMachinesScreen(
-                        statusFilter: 'Running',
-                      ),
-                    ),
-                  );
-                },
-              ),
-              _buildStatCard(
-                title: 'Breakdowns',
-                count: countStatus('Breakdown'),
-                icon: Icons.warning_amber,
-                color: Colors.red,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const AllMachinesScreen(
-                        statusFilter: 'Breakdown',
-                      ),
-                    ),
-                  );
-                },
-              ),
-              _buildStatCard(
-                title: 'Maintenance',
-                count: countStatus('Maintenance'),
-                icon: Icons.build_outlined,
-                color: Colors.orange,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const AllMachinesScreen(
-                         statusFilter: 'Maintenance',
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ]),
-          ],
+        final total = machines.length;
+        final running = countStatus('Running');
+        final breakdown = countStatus('Breakdown');
+        final maintenance = countStatus('Maintenance');
+
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final isNarrow = constraints.maxWidth < 640;
+
+            final totalCard = StatCard(
+              title: 'Total Units',
+              value: total.toString(),
+              icon: Icons.precision_manufacturing_rounded,
+              color: AppColors.accent,
+              subtitle: 'Tap to view',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AllMachinesScreen()),
+                );
+              },
+            );
+
+            final runningCard = StatCard(
+              title: 'Running',
+              value: running.toString(),
+              icon: Icons.play_circle_rounded,
+              color: AppColors.running,
+              subtitle: 'Operating',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const AllMachinesScreen(statusFilter: 'Running'),
+                  ),
+                );
+              },
+            );
+
+            final breakdownCard = StatCard(
+              title: 'Breakdown',
+              value: breakdown.toString(),
+              icon: Icons.warning_rounded,
+              color: AppColors.breakdown,
+              subtitle: 'Requires action',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const AllMachinesScreen(statusFilter: 'Breakdown'),
+                  ),
+                );
+              },
+            );
+
+            final maintenanceCard = StatCard(
+              title: 'Maintenance',
+              value: maintenance.toString(),
+              icon: Icons.build_rounded,
+              color: AppColors.maintenance,
+              subtitle: 'Servicing',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const AllMachinesScreen(statusFilter: 'Maintenance'),
+                  ),
+                );
+              },
+            );
+
+            if (isNarrow) {
+              return Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(child: totalCard),
+                      const SizedBox(width: 10),
+                      Expanded(child: runningCard),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(child: breakdownCard),
+                      const SizedBox(width: 10),
+                      Expanded(child: maintenanceCard),
+                    ],
+                  ),
+                ],
+              );
+            }
+
+            return Row(
+              children: [
+                Expanded(child: totalCard),
+                const SizedBox(width: 12),
+                Expanded(child: runningCard),
+                const SizedBox(width: 12),
+                Expanded(child: breakdownCard),
+                const SizedBox(width: 12),
+                Expanded(child: maintenanceCard),
+              ],
+            );
+          },
         );
       },
     );
   }
 
-  // BREAKDOWN OVERVIEW
   Widget _buildBreakdownOverview() {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: FirebaseFirestore.instance.collection('breakdowns').snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return const Card(
-            child: Padding(
-              padding: EdgeInsets.all(16),
-              child: Text(
-                'Could not load breakdown statistics. '
-                'Check Firestore permissions.',
-              ),
-            ),
-          );
+          return const Text('Could not load breakdown statistics.');
         }
 
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
             child: Padding(
-              padding: EdgeInsets.all(24),
+              padding: EdgeInsets.all(20),
               child: CircularProgressIndicator(),
             ),
           );
@@ -283,121 +247,129 @@ class _AdminScreenState extends State<AdminScreen> {
 
         final breakdowns = snapshot.data?.docs ?? [];
 
-        int countSeverity(String severity) {
-          return breakdowns.where((breakdown) {
-            return breakdown.data()['severity'] == severity;
-          }).length;
+        int countSeverity(String sev) {
+          return breakdowns.where((b) => (b.data()['severity'] ?? '') == sev).length;
         }
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildSectionTitle(
-              icon: Icons.warning_amber,
-              title: 'Breakdown Overview',
-              subtitle: 'Reported breakdowns grouped by severity',
-            ),
-            _buildStatGrid([
-              _buildStatCard(
-                title: 'Total Reports',
-                count: breakdowns.length,
+        final total = breakdowns.length;
+        final critical = countSeverity('Critical');
+        final high = countSeverity('High');
+        final medium = countSeverity('Medium');
+        final low = countSeverity('Low');
+
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final width = constraints.maxWidth;
+            final columns = width >= 900
+                ? 5
+                : width >= 540
+                    ? 3
+                    : 2;
+
+            const spacing = 10.0;
+            final cardWidth = (width - spacing * (columns - 1)) / columns;
+
+            final cards = [
+              StatCard(
+                title: 'Total Incidents',
+                value: total.toString(),
                 icon: Icons.assignment_outlined,
-                color: Colors.blue,
+                color: AppColors.accent,
+                subtitle: 'Tap to view',
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (context) => const AllBreakdownsScreen(),
-                    ),
+                    MaterialPageRoute(builder: (_) => const AllBreakdownsScreen()),
                   );
                 },
               ),
-              _buildStatCard(
+              StatCard(
                 title: 'Critical',
-                count: countSeverity('Critical'),
-                icon: Icons.error_outline,
-                color: Colors.red,
+                value: critical.toString(),
+                icon: Icons.error_outline_rounded,
+                color: AppColors.critical,
+                subtitle: 'Immediate',
                 onTap: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const AllBreakdownsScreen(
-                        severityFilter: 'Critical',
-                      ),
+                      builder: (_) => const AllBreakdownsScreen(severityFilter: 'Critical'),
                     ),
                   );
                 },
               ),
-              _buildStatCard(
-                title: 'High Severity',
-                count: countSeverity('High'),
-                icon: Icons.priority_high,
-                color: Colors.deepOrange,
+              StatCard(
+                title: 'High',
+                value: high.toString(),
+                icon: Icons.priority_high_rounded,
+                color: AppColors.high,
+                subtitle: 'Urgent',
                 onTap: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const AllBreakdownsScreen(
-                        severityFilter: 'High',
-                      ),
+                      builder: (_) => const AllBreakdownsScreen(severityFilter: 'High'),
                     ),
                   );
                 },
               ),
-              _buildStatCard(
-                title: 'Medium Severity',
-                count: countSeverity('Medium'),
-                icon: Icons.warning_amber,
-                color: Colors.amber,
+              StatCard(
+                title: 'Medium',
+                value: medium.toString(),
+                icon: Icons.warning_rounded,
+                color: AppColors.medium,
+                subtitle: 'Standard',
                 onTap: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const AllBreakdownsScreen(
-                        severityFilter: 'Medium',
-                      ),
+                      builder: (_) => const AllBreakdownsScreen(severityFilter: 'Medium'),
                     ),
                   );
                 },
               ),
-              _buildStatCard(
-                title: 'Low Severity',
-                count: countSeverity('Low'),
-                icon: Icons.info_outline,
-                color: Colors.teal,
+              StatCard(
+                title: 'Low',
+                value: low.toString(),
+                icon: Icons.info_outline_rounded,
+                color: AppColors.low,
+                subtitle: 'Minor',
                 onTap: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const AllBreakdownsScreen(
-                        severityFilter: 'Low',
-                      ),
+                      builder: (_) => const AllBreakdownsScreen(severityFilter: 'Low'),
                     ),
                   );
                 },
               ),
-            ]),
-          ],
+            ];
+
+            return Wrap(
+              spacing: spacing,
+              runSpacing: spacing,
+              children: cards
+                  .map((c) => SizedBox(width: cardWidth, child: c))
+                  .toList(),
+            );
+          },
         );
       },
     );
   }
 
-  // USER MANAGEMENT
   Widget _buildUserManagement() {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: FirebaseFirestore.instance.collection('users').snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return const Text(
-            'Could not load users. Check Firestore permissions.',
-          );
+          return const Text('Could not load users. Check permissions.');
         }
 
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
             child: Padding(
-              padding: EdgeInsets.all(24),
+              padding: EdgeInsets.all(20),
               child: CircularProgressIndicator(),
             ),
           );
@@ -405,49 +377,14 @@ class _AdminScreenState extends State<AdminScreen> {
 
         final allUsers = snapshot.data?.docs ?? [];
 
-        final totalAdmins = allUsers.where((document) {
-          return document.data()['role'] == 'admin';
-        }).length;
-
-        final totalRegularUsers = allUsers.where((document) {
-          return document.data()['role'] == 'user';
-        }).length;
-
         final filteredUsers = allUsers.where((document) {
-          final email = (document.data()['email'] as String? ?? '')
-              .toLowerCase();
+          final email = (document.data()['email'] as String? ?? '').toLowerCase();
           return email.contains(_searchQuery);
         }).toList();
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildSectionTitle(
-              icon: Icons.people_outline,
-              title: 'User Management',
-              subtitle: 'Search registered accounts and view roles',
-            ),
-            _buildStatGrid([
-              _buildStatCard(
-                title: 'Total Users',
-                count: allUsers.length,
-                icon: Icons.people_outline,
-                color: Colors.blue,
-              ),
-              _buildStatCard(
-                title: 'Admins',
-                count: totalAdmins,
-                icon: Icons.admin_panel_settings,
-                color: Colors.deepPurple,
-              ),
-              _buildStatCard(
-                title: 'Regular Users',
-                count: totalRegularUsers,
-                icon: Icons.person_outline,
-                color: Colors.green,
-              ),
-            ]),
-            const SizedBox(height: 24),
             TextField(
               controller: _searchController,
               onChanged: (value) {
@@ -456,113 +393,367 @@ class _AdminScreenState extends State<AdminScreen> {
                 });
               },
               decoration: InputDecoration(
-                hintText: 'Search by email...',
-                prefixIcon: const Icon(Icons.search),
+                hintText: 'Search operators or admins by email...',
+                prefixIcon: const Icon(Icons.search_rounded, color: AppColors.textSecondary),
                 suffixIcon: _searchQuery.isEmpty
                     ? null
                     : IconButton(
-                        tooltip: 'Clear search',
-                        icon: const Icon(Icons.close),
+                        icon: const Icon(Icons.close_rounded, size: 18),
                         onPressed: () {
                           _searchController.clear();
-                          setState(() {
-                            _searchQuery = '';
-                          });
+                          setState(() => _searchQuery = '');
                         },
                       ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Text(
-              '${filteredUsers.length} of ${allUsers.length} users',
-              style: Theme.of(context).textTheme.bodySmall,
+              'Showing ${filteredUsers.length} of ${allUsers.length} registered accounts',
+              style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
             ),
-            const SizedBox(height: 8),
-            if (allUsers.isEmpty)
+            const SizedBox(height: 14),
+
+            if (filteredUsers.isEmpty)
               const Padding(
-                padding: EdgeInsets.all(16),
-                child: Text('No registered users found.'),
-              )
-            else if (filteredUsers.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(16),
-                child: Text('No users match your search.'),
+                padding: EdgeInsets.all(24),
+                child: Center(
+                  child: Text(
+                    'No accounts match your search.',
+                    style: TextStyle(color: AppColors.textSecondary),
+                  ),
+                ),
               )
             else
-              ...filteredUsers.map((document) {
-                final data = document.data();
-                final email = data['email'] as String? ?? 'No email available';
-                final role = data['role'] as String? ?? 'unassigned';
-                final createdAt = data['createdAt'] as Timestamp?;
-                final roleColor = _roleColor(role);
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: filteredUsers.length,
+                separatorBuilder: (context, index) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final data = filteredUsers[index].data();
+                  final email = data['email'] as String? ?? 'No email available';
+                  final role = data['role'] as String? ?? 'user';
+                  final roleColor = _roleColor(role);
+                  final roleLabel = _roleLabel(role);
+                  final initial = email.isNotEmpty ? email[0].toUpperCase() : 'O';
 
-                return Column(
-                  children: [
-                    ListTile(
-                      contentPadding: const EdgeInsets.symmetric(vertical: 6),
-                      leading: CircleAvatar(
-                        child: Icon(
-                          role == 'admin'
-                              ? Icons.admin_panel_settings
-                              : Icons.person_outline,
-                        ),
-                      ),
-                      title: Text(email),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 4),
-                          Chip(
-                            label: Text(
-                              _roleLabel(role),
-                              style: TextStyle(
-                                color: roleColor,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            backgroundColor: roleColor.withOpacity(0.12),
-                            side: BorderSide(
-                              color: roleColor.withOpacity(0.35),
-                            ),
-                            visualDensity: VisualDensity.compact,
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          backgroundColor: AppColors.surface,
+                          foregroundColor: AppColors.textPrimary,
+                          radius: 18,
+                          child: Text(
+                            initial,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                           ),
-                          if (createdAt != null)
-                            Text(
-                              'Joined: ${createdAt.toDate().toLocal().toString().split('.').first}',
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                email,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13.5,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                roleLabel,
+                                style: const TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: roleColor.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: roleColor.withValues(alpha: 0.3)),
+                          ),
+                          child: Text(
+                            role.toUpperCase(),
+                            style: TextStyle(
+                              color: roleColor,
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w700,
                             ),
-                        ],
-                      ),
-                      isThreeLine: createdAt != null,
+                          ),
+                        ),
+                      ],
                     ),
-                    const Divider(height: 1),
-                  ],
-                );
-              }),
+                  );
+                },
+              ),
           ],
         );
       },
     );
   }
 
+  Widget _buildAdminActionCard({
+    required IconData icon,
+    required String title,
+    required String description,
+    required String buttonText,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 24, color: AppColors.textPrimary),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 15.5,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            description,
+            style: const TextStyle(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+              height: 1.3,
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            height: 44,
+            child: ElevatedButton(
+              onPressed: onTap,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                elevation: 0,
+              ),
+              child: Text(
+                buttonText,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Admin Dashboard'),
+        title: const Text(
+          'ManufactureOS Admin',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
+          ),
+        ),
         actions: [
           IconButton(
-            tooltip: 'Sign out',
-            icon: const Icon(Icons.logout),
+            tooltip: 'Sign Out',
+            icon: const Icon(Icons.logout_rounded, color: AppColors.textPrimary),
             onPressed: () async {
               await FirebaseAuth.instance.signOut();
             },
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: SingleChildScrollView(
+        padding: Responsive.pagePadding(context),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: Responsive.maxContentWidth(context)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // MICRO-HEADER (Matches AidGrid Image 1)
+                const Text(
+                  'ADMIN DASHBOARD',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textSecondary,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Welcome back, Admin',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                    letterSpacing: -0.4,
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // 4 STACKED ACTION CARDS (Structured Human Product Layout)
+                _buildAdminActionCard(
+                  icon: Icons.inventory_2_outlined,
+                  title: 'Machine & Equipment Inventory',
+                  description: 'View, register, and configure machinery across all production lines.',
+                  buttonText: 'Open Equipment',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const AllMachinesScreen()),
+                    );
+                  },
+                ),
+                const SizedBox(height: 14),
+
+                _buildAdminActionCard(
+                  icon: Icons.alt_route_rounded,
+                  title: 'Production Lines & Cells',
+                  description: 'Monitor line capacity, workstation hubs, and operational throughput.',
+                  buttonText: 'Open Production Lines',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const AllMachinesScreen()),
+                    );
+                  },
+                ),
+                const SizedBox(height: 14),
+
+                _buildAdminActionCard(
+                  icon: Icons.assignment_outlined,
+                  title: 'Breakdown & Work Orders',
+                  description: 'Track incident tickets, technician dispatches, and active repair orders.',
+                  buttonText: 'Open Work Orders',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const AllBreakdownsScreen()),
+                    );
+                  },
+                ),
+                const SizedBox(height: 14),
+
+                _buildAdminActionCard(
+                  icon: Icons.history_rounded,
+                  title: 'Inspection & Incident Logs',
+                  description: 'Review real-time safety audit records, shift logs, and maintenance history.',
+                  buttonText: 'Open Audit Logs',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const AllBreakdownsScreen()),
+                    );
+                  },
+                ),
+                const SizedBox(height: 20),
+
+                // MACHINE TELEMETRY OVERVIEW
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSectionHeader(
+                        icon: Icons.precision_manufacturing_rounded,
+                        title: 'Machine Telemetry Overview',
+                        subtitle: 'Live operational status across all units',
+                      ),
+                      const SizedBox(height: 16),
+                      _buildMachineOverview(),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // BREAKDOWN SEVERITY OVERVIEW
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSectionHeader(
+                        icon: Icons.warning_amber_rounded,
+                        title: 'Breakdown Severity Log',
+                        subtitle: 'Incident tracking by criticality level',
+                      ),
+                      const SizedBox(height: 16),
+                      _buildBreakdownOverview(),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // USER & OPERATOR ACCESS SECTION
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSectionHeader(
+                        icon: Icons.people_outline_rounded,
+                        title: 'User & Operator Access',
+                        subtitle: 'Manage registered floor personnel and role permissions',
+                      ),
+                      const SizedBox(height: 16),
+                      _buildUserManagement(),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 32),
+              ],
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -639,7 +830,7 @@ class _AdminScreenState extends State<AdminScreen> {
                 child: _buildUserManagement(),
               ),
             ),
-          ],
+          ),
         ),
       ),
     );

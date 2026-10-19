@@ -1,30 +1,74 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:manufacturing_app/main.dart';
+import 'package:manufacturing_app/screens/loading_screen.dart';
+import 'package:manufacturing_app/theme/app_theme.dart';
+import 'package:manufacturing_app/utils/responsive.dart';
+import 'package:manufacturing_app/widgets/pulsing_status_badge.dart';
+import 'package:manufacturing_app/widgets/stat_card.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const ManufacturingApp());
+  testWidgets('PulsingStatusBadge displays status label and renders correctly', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: PulsingStatusBadge(status: 'Running'),
+        ),
+      ),
+    );
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    expect(find.text('Running'), findsOneWidget);
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
+  testWidgets('StatCard displays value, title, and responds to tap', (WidgetTester tester) async {
+    bool tapped = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: StatCard(
+            title: 'Operating Units',
+            value: '42',
+            icon: Icons.precision_manufacturing,
+            color: AppColors.primary,
+            onTap: () {
+              tapped = true;
+            },
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('OPERATING UNITS'), findsOneWidget);
+    expect(find.text('42'), findsOneWidget);
+
+    await tester.tap(find.text('OPERATING UNITS'));
     await tester.pump();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(tapped, isTrue);
+  });
+
+  testWidgets('CustomLoadingScreen displays brand title, message, and loading indicator', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: CustomLoadingScreen(
+          message: 'Establishing floor telemetry...',
+          subMessage: 'Live Industrial Supervision Grid',
+        ),
+      ),
+    );
+
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.text('ManufactureOS'), findsOneWidget);
+    expect(find.byIcon(Icons.precision_manufacturing_rounded), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.text('Establishing floor telemetry...'), findsOneWidget);
+    expect(find.text('Live Industrial Supervision Grid'), findsOneWidget);
+  });
+
+  test('Responsive breakpoint logic functions correctly', () {
+    expect(Responsive.mobileBreakpoint, 768);
+    expect(Responsive.tabletBreakpoint, 1100);
   });
 }
