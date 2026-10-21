@@ -53,46 +53,48 @@ class _PulsingStatusBadgeState extends State<PulsingStatusBadge>
     final statusColor = AppColors.getStatusColor(widget.status);
     final statusBg = AppColors.getStatusLightBg(widget.status);
 
-    final dot = SizedBox(
-      width: widget.dotSize * 1.8,
-      height: widget.dotSize * 1.8,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // Outer pulsing ring
-          AnimatedBuilder(
-            animation: _controller,
-            builder: (context, child) {
-              return Transform.scale(
-                scale: _scaleAnimation.value,
-                child: Container(
-                  width: widget.dotSize,
-                  height: widget.dotSize,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: statusColor.withValues(alpha: _opacityAnimation.value),
+    final dot = RepaintBoundary(
+      child: SizedBox(
+        width: widget.dotSize * 1.8,
+        height: widget.dotSize * 1.8,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Outer pulsing ring
+            AnimatedBuilder(
+              animation: _controller,
+              builder: (context, child) {
+                return Transform.scale(
+                  scale: _scaleAnimation.value,
+                  child: Container(
+                    width: widget.dotSize,
+                    height: widget.dotSize,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: statusColor.withValues(alpha: _opacityAnimation.value),
+                    ),
                   ),
-                ),
-              );
-            },
-          ),
-          // Inner solid dot
-          Container(
-            width: widget.dotSize,
-            height: widget.dotSize,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: statusColor,
-              boxShadow: [
-                BoxShadow(
-                  color: statusColor.withValues(alpha: 0.4),
-                  blurRadius: 4,
-                  spreadRadius: 1,
-                ),
-              ],
+                );
+              },
             ),
-          ),
-        ],
+            // Inner solid dot
+            Container(
+              width: widget.dotSize,
+              height: widget.dotSize,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: statusColor,
+                boxShadow: [
+                  BoxShadow(
+                    color: statusColor.withValues(alpha: 0.4),
+                    blurRadius: 4,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
 

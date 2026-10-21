@@ -14,6 +14,7 @@ class CustomLoadingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final displayMessage = message ?? 'Loading equipment telemetry...';
+    
     final displaySub = subMessage ?? 'Industrial Machine & Telemetry Grid';
 
     return Scaffold(

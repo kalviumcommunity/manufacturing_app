@@ -37,7 +37,9 @@ class _BreakdownCardState extends State<BreakdownCard> {
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+        transform: Matrix4.translationValues(0, _isHovered && widget.onTap != null ? -2.5 : 0, 0),
         decoration: BoxDecoration(
           color: AppColors.cardBg,
           borderRadius: BorderRadius.circular(16),
@@ -50,10 +52,10 @@ class _BreakdownCardState extends State<BreakdownCard> {
           boxShadow: [
             BoxShadow(
               color: _isHovered
-                  ? severityColor.withValues(alpha: 0.08)
+                  ? severityColor.withValues(alpha: 0.12)
                   : Colors.black.withValues(alpha: 0.03),
               blurRadius: _isHovered ? 12 : 6,
-              offset: Offset(0, _isHovered ? 3 : 1),
+              offset: Offset(0, _isHovered ? 4 : 1),
             ),
           ],
         ),
