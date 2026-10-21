@@ -3,7 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../theme/app_theme.dart';
 import '../utils/responsive.dart';
 import '../widgets/breakdown_summary_card.dart';
-import 'inspection_form.dart';
 import 'machine_details.dart';
 
 class AllInspectionsScreen extends StatefulWidget {
@@ -84,161 +83,12 @@ class _AllInspectionsScreenState extends State<AllInspectionsScreen> {
     }
   }
 
-  void _showNewInspectionDialog(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          padding: const EdgeInsets.all(20),
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(ctx).size.height * 0.75,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Select Machine to Inspect',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close_rounded),
-                    onPressed: () => Navigator.pop(ctx),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'Choose an equipment unit from the plant floor to record an inspection report.',
-                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                  stream: FirebaseFirestore.instance.collection('machines').snapshots(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    if (snapshot.hasError) {
-                      return Center(
-                        child: Text(
-                          'Failed to load machines: ${snapshot.error}',
-                          style: const TextStyle(color: AppColors.breakdown),
-                        ),
-                      );
-                    }
-
-                    final machines = snapshot.data?.docs ?? [];
-                    if (machines.isEmpty) {
-                      return const Center(
-                        child: Text(
-                          'No machines found in database.',
-                          style: TextStyle(color: AppColors.textSecondary),
-                        ),
-                      );
-                    }
-
-                    return ListView.separated(
-                      itemCount: machines.length,
-                      separatorBuilder: (_, __) => const Divider(height: 1),
-                      itemBuilder: (context, index) {
-                        final mDoc = machines[index];
-                        final mData = mDoc.data();
-                        final mId = mDoc.id;
-                        final mName = mData['name'] ?? 'Machine $mId';
-                        final mLine = mData['line'] ?? 'Floor';
-                        final mStatus = mData['status'] ?? 'Running';
-                        final statusColor = AppColors.getStatusColor(mStatus);
-
-                        return ListTile(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                          leading: Container(
-                            width: 38,
-                            height: 38,
-                            decoration: BoxDecoration(
-                              color: statusColor.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Icon(
-                              Icons.precision_manufacturing_rounded,
-                              color: statusColor,
-                              size: 20,
-                            ),
-                          ),
-                          title: Text(
-                            mName,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                          subtitle: Text(
-                            '$mLine · Status: $mStatus',
-                            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                          ),
-                          trailing: const Icon(
-                            Icons.arrow_forward_ios_rounded,
-                            size: 14,
-                            color: AppColors.textMuted,
-                          ),
-                          onTap: () {
-                            Navigator.pop(ctx);
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => InspectionFormScreen(
-                                  machineId: mId,
-                                  machineName: mName,
-                                ),
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Inspection & Audit Logs'),
-        actions: [
-          IconButton(
-            tooltip: 'Record Inspection',
-            icon: const Icon(Icons.add_task_rounded),
-            onPressed: () => _showNewInspectionDialog(context),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.fact_check_rounded, size: 20),
-        label: const Text('Log Inspection'),
-        onPressed: () => _showNewInspectionDialog(context),
       ),
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
         stream: FirebaseFirestore.instance
@@ -315,35 +165,22 @@ class _AllInspectionsScreenState extends State<AllInspectionsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // PAGE HEADER
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
-                              Text(
-                                'Inspection & Audit Logs',
-                                style: TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.textPrimary,
-                                  letterSpacing: -0.4,
-                                ),
-                              ),
-                              SizedBox(height: 4),
-                              Text(
-                                'Live quality verification and maintenance safety records across all plant production lines.',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                    Text(
+                      'Inspection & Audit Logs',
+                      style: TextStyle(
+                        fontSize: Responsive.isMobile(context) ? 22 : 28,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Live quality verification and maintenance safety records across all plant production lines.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
 
                     const SizedBox(height: 20),
@@ -351,14 +188,14 @@ class _AllInspectionsScreenState extends State<AllInspectionsScreen> {
                     // SUMMARY CARDS GRID
                     LayoutBuilder(
                       builder: (context, constraints) {
-                        final isSmall = constraints.maxWidth < 600;
-                        final cardWidth = isSmall
-                            ? (constraints.maxWidth - 12) / 2
-                            : (constraints.maxWidth - 36) / 4;
+                        final width = constraints.maxWidth;
+                        final columns = width >= 900 ? 4 : (width >= 540 ? 2 : 2);
+                        const spacing = 10.0;
+                        final cardWidth = (width - spacing * (columns - 1)) / columns;
 
                         return Wrap(
-                          spacing: 12,
-                          runSpacing: 12,
+                          spacing: spacing,
+                          runSpacing: spacing,
                           children: [
                             SizedBox(
                               width: cardWidth,
@@ -409,7 +246,7 @@ class _AllInspectionsScreenState extends State<AllInspectionsScreen> {
                       },
                     ),
 
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
 
                     // SEARCH & FILTER BAR
                     Container(
@@ -494,26 +331,65 @@ class _AllInspectionsScreenState extends State<AllInspectionsScreen> {
 
                     // DIRECTIONAL GLIDING INSPECTION LIST
                     AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 280),
+                      duration: const Duration(milliseconds: 300),
+                      reverseDuration: const Duration(milliseconds: 200),
                       switchInCurve: Curves.easeOutCubic,
                       switchOutCurve: Curves.easeInCubic,
                       transitionBuilder: (child, animation) {
-                        final offsetTween = Tween<Offset>(
-                          begin: Offset(_glideForward ? 0.08 : -0.08, 0),
+                        final inOffset = Tween<Offset>(
+                          begin: Offset(_glideForward ? 0.07 : -0.07, 0.0),
                           end: Offset.zero,
-                        );
+                        ).animate(CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeOutCubic,
+                        ));
                         return FadeTransition(
                           opacity: animation,
                           child: SlideTransition(
-                            position: offsetTween.animate(animation),
+                            position: inOffset,
                             child: child,
                           ),
                         );
                       },
                       child: KeyedSubtree(
-                        key: ValueKey<String>('$_currentResult-$_searchQuery'),
+                        key: ValueKey('inspections-view-$_currentResult-$_searchQuery'),
                         child: filteredList.isEmpty
-                            ? _buildEmptyState()
+                            ? Container(
+                                key: const ValueKey('empty-inspections'),
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(40),
+                                decoration: BoxDecoration(
+                                  color: AppColors.cardBg,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: AppColors.border),
+                                ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(
+                                      Icons.verified_rounded,
+                                      size: 40,
+                                      color: AppColors.running,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      _searchQuery.isNotEmpty
+                                          ? 'No inspections matching "$_searchQuery"'
+                                          : 'No inspection reports with status "$_currentResult"',
+                                      style: const TextStyle(
+                                        fontSize: 15.5,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    const Text(
+                                      'Quality checks and safety audits will appear here once recorded.',
+                                      style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                                    ),
+                                  ],
+                                ),
+                              )
                             : ListView.separated(
                                 shrinkWrap: true,
                                 physics: const NeverScrollableScrollPhysics(),
@@ -550,69 +426,13 @@ class _AllInspectionsScreenState extends State<AllInspectionsScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 60),
+                    const SizedBox(height: 40),
                   ],
                 ),
               ),
             ),
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.primaryLight,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.fact_check_outlined,
-              size: 40,
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'No Inspection Records Found',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'No audit logs match your selected filter or search keywords.',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
-          ),
-          const SizedBox(height: 18),
-          ElevatedButton.icon(
-            onPressed: () => _showNewInspectionDialog(context),
-            icon: const Icon(Icons.add_task_rounded, size: 16),
-            label: const Text('Record New Inspection'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              elevation: 0,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -669,7 +489,6 @@ class _AllInspectionsScreenState extends State<AllInspectionsScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Result Badge
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
@@ -694,8 +513,6 @@ class _AllInspectionsScreenState extends State<AllInspectionsScreen> {
                         ],
                       ),
                     ),
-
-                    // Timestamp
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -766,7 +583,7 @@ class _AllInspectionsScreenState extends State<AllInspectionsScreen> {
 
                 const SizedBox(height: 12),
 
-                // Checklist / Description Notes Container
+                // Description Box
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
@@ -787,7 +604,7 @@ class _AllInspectionsScreenState extends State<AllInspectionsScreen> {
 
                 const SizedBox(height: 12),
 
-                // Footer Row: Inspector & Action Link
+                // Footer: Inspector & Link
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -807,7 +624,7 @@ class _AllInspectionsScreenState extends State<AllInspectionsScreen> {
                       ],
                     ),
                     if (machineId.isNotEmpty)
-                      Text(
+                      const Text(
                         'View Machine →',
                         style: TextStyle(
                           fontSize: 12,
