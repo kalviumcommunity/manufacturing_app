@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
 import '../theme/app_theme.dart';
 import '../utils/responsive.dart';
 import '../widgets/machine_card.dart';
@@ -20,6 +19,22 @@ class _AllMachinesScreenState extends State<AllMachinesScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   late String _currentFilter;
+  bool _glideForward = true;
+
+  int _getFilterIndex(String filter) {
+    switch (filter) {
+      case 'All':
+        return 0;
+      case 'Running':
+        return 1;
+      case 'Breakdown':
+        return 2;
+      case 'Maintenance':
+        return 3;
+      default:
+        return 0;
+    }
+  }
 
   @override
   void initState() {
@@ -34,7 +49,11 @@ class _AllMachinesScreenState extends State<AllMachinesScreen> {
   }
 
   void _setFilter(String filter) {
+    if (_currentFilter == filter) return;
+    final newIndex = _getFilterIndex(filter);
+    final oldIndex = _getFilterIndex(_currentFilter);
     setState(() {
+      _glideForward = newIndex >= oldIndex;
       _currentFilter = filter;
     });
   }
@@ -294,100 +313,126 @@ class _AllMachinesScreenState extends State<AllMachinesScreen> {
 
                     const SizedBox(height: 20),
 
-                    // MACHINES LIST OR GRID
-                    if (filteredList.isEmpty)
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(40),
-                        decoration: BoxDecoration(
-                          color: AppColors.cardBg,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppColors.border),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.search_off_rounded,
-                              size: 40,
-                              color: AppColors.textMuted,
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              _searchQuery.isNotEmpty
-                                  ? 'No machines matching "$_searchQuery"'
-                                  : 'No machines with status "$_currentFilter"',
-                              style: const TextStyle(
-                                fontSize: 15.5,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textPrimary,
+                    // MACHINES LIST OR GRID WITH SMOOTH GLIDING TRANSITION
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      reverseDuration: const Duration(milliseconds: 200),
+                      switchInCurve: Curves.easeOutCubic,
+                      switchOutCurve: Curves.easeInCubic,
+                      transitionBuilder: (child, animation) {
+                        final inOffset = Tween<Offset>(
+                          begin: Offset(_glideForward ? 0.07 : -0.07, 0.0),
+                          end: Offset.zero,
+                        ).animate(CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeOutCubic,
+                        ));
+                        return FadeTransition(
+                          opacity: animation,
+                          child: SlideTransition(
+                            position: inOffset,
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: KeyedSubtree(
+                        key: ValueKey('machines-view-$_currentFilter-$_searchQuery'),
+                        child: filteredList.isEmpty
+                            ? Container(
+                                key: const ValueKey('empty-machines'),
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(40),
+                                decoration: BoxDecoration(
+                                  color: AppColors.cardBg,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: AppColors.border),
+                                ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(
+                                      Icons.search_off_rounded,
+                                      size: 40,
+                                      color: AppColors.textMuted,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      _searchQuery.isNotEmpty
+                                          ? 'No machines matching "$_searchQuery"'
+                                          : 'No machines with status "$_currentFilter"',
+                                      style: const TextStyle(
+                                        fontSize: 15.5,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    OutlinedButton(
+                                      onPressed: () {
+                                        _searchController.clear();
+                                        setState(() {
+                                          _searchQuery = '';
+                                          _currentFilter = 'All';
+                                        });
+                                      },
+                                      child: const Text('Reset Filters'),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : LayoutBuilder(
+                                key: ValueKey('list-layout-$_currentFilter-$_searchQuery'),
+                                builder: (context, constraints) {
+                                  final columns = constraints.maxWidth >= 1050
+                                      ? 3
+                                      : constraints.maxWidth >= 680
+                                          ? 2
+                                          : 1;
+
+                                  final children = filteredList.map((doc) {
+                                    final data = doc.data();
+                                    final machineId = data['machineId'] ?? doc.id;
+                                    final machineName = data['machineName'] ?? 'Unknown Machine';
+                                    final lineName = data['lineName'] ?? 'Unknown Line';
+                                    final status = data['status'] ?? 'Unknown';
+                                    final statusColor = AppColors.getStatusColor(status);
+
+                                    return MachineCard(
+                                      machineId: machineId,
+                                      machineName: machineName,
+                                      lineName: lineName,
+                                      status: status,
+                                      statusColor: statusColor,
+                                    );
+                                  }).toList();
+
+                                  if (columns == 1) {
+                                    return Column(
+                                      children: children
+                                          .map((c) => Padding(
+                                                padding: const EdgeInsets.only(bottom: 10),
+                                                child: c,
+                                              ))
+                                          .toList(),
+                                    );
+                                  }
+
+                                  return GridView.builder(
+                                    shrinkWrap: true,
+                                    physics: const NeverScrollableScrollPhysics(),
+                                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: columns,
+                                      crossAxisSpacing: 12,
+                                      mainAxisSpacing: 12,
+                                      mainAxisExtent: 84,
+                                    ),
+                                    itemCount: children.length,
+                                    itemBuilder: (context, index) => children[index],
+                                  );
+                                },
                               ),
-                            ),
-                            const SizedBox(height: 12),
-                            OutlinedButton(
-                              onPressed: () {
-                                _searchController.clear();
-                                setState(() {
-                                  _searchQuery = '';
-                                  _currentFilter = 'All';
-                                });
-                              },
-                              child: const Text('Reset Filters'),
-                            ),
-                          ],
-                        ),
-                      )
-                    else
-                      LayoutBuilder(
-                        builder: (context, constraints) {
-                          final columns = constraints.maxWidth >= 1050
-                              ? 3
-                              : constraints.maxWidth >= 680
-                                  ? 2
-                                  : 1;
-
-                          final children = filteredList.map((doc) {
-                            final data = doc.data();
-                            final machineId = data['machineId'] ?? doc.id;
-                            final machineName = data['machineName'] ?? 'Unknown Machine';
-                            final lineName = data['lineName'] ?? 'Unknown Line';
-                            final status = data['status'] ?? 'Unknown';
-                            final statusColor = AppColors.getStatusColor(status);
-
-                            return MachineCard(
-                              machineId: machineId,
-                              machineName: machineName,
-                              lineName: lineName,
-                              status: status,
-                              statusColor: statusColor,
-                            );
-                          }).toList();
-
-                          if (columns == 1) {
-                            return Column(
-                              children: children
-                                  .map((c) => Padding(
-                                        padding: const EdgeInsets.only(bottom: 10),
-                                        child: c,
-                                      ))
-                                  .toList(),
-                            );
-                          }
-
-                          return GridView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: columns,
-                              crossAxisSpacing: 12,
-                              mainAxisSpacing: 12,
-                              mainAxisExtent: 84,
-                            ),
-                            itemCount: children.length,
-                            itemBuilder: (context, index) => children[index],
-                          );
-                        },
                       ),
+                    ),
                     const SizedBox(height: 30),
                   ],
                 ),
@@ -423,14 +468,26 @@ class _StatusFilterChip extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
+          duration: const Duration(milliseconds: 240),
+          curve: Curves.easeOutCubic,
+          transform: Matrix4.translationValues(0, isSelected ? -2 : 0, 0),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
           decoration: BoxDecoration(
-            color: isSelected ? color.withValues(alpha: 0.18) : AppColors.surface,
+            color: isSelected ? color.withValues(alpha: 0.16) : AppColors.surface,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: isSelected ? color : AppColors.border,
+              width: isSelected ? 1.5 : 1,
             ),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: color.withValues(alpha: 0.25),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : [],
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -439,13 +496,15 @@ class _StatusFilterChip extends StatelessWidget {
                 label,
                 style: TextStyle(
                   color: isSelected ? color : AppColors.textSecondary,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
                   fontSize: 12.5,
                 ),
               ),
               const SizedBox(width: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 240),
+                curve: Curves.easeOutCubic,
+                padding: const EdgeInsets.symmetric(horizontal: 6.5, vertical: 2),
                 decoration: BoxDecoration(
                   color: isSelected
                       ? color.withValues(alpha: 0.25)

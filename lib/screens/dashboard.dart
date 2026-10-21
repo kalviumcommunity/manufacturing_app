@@ -5,9 +5,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../theme/app_theme.dart';
 import '../utils/responsive.dart';
 import '../widgets/dashboard_sidebar.dart';
+
 import '../widgets/stat_card.dart';
 import 'all_breakdowns_screen.dart';
 import 'all_machines_screen.dart';
+
 import 'machine_details.dart';
 import 'recurring_faults_screen.dart';
 import 'settings_screen.dart';
@@ -21,15 +23,8 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   String selectedItem = 'Dashboard';
-
-  void changePage(String page) {
-    setState(() {
-      selectedItem = page;
-    });
-  }
-
-  int _navIndex() {
-    switch (selectedItem) {
+  int _indexForPage(String page) {
+    switch (page) {
       case 'Machines':
         return 1;
       case 'Breakdowns':
@@ -40,6 +35,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
       default:
         return 0;
     }
+  }
+
+  int _navIndex() => _indexForPage(selectedItem);
+
+  void changePage(String page) {
+    if (selectedItem == page) return;
+    setState(() {
+      selectedItem = page;
+    });
   }
 
   void _onNavDestinationSelected(int index) {
@@ -59,8 +63,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  Widget getCurrentPage() {
+  Widget _getCurrentPage() {
     switch (selectedItem) {
+      case 'Dashboard':
+        return DashboardHomeContent(
+          onNavigateToMachines: () => changePage('Machines'),
+          onNavigateToBreakdowns: () => changePage('Breakdowns'),
+          onNavigateToSettings: () => changePage('Settings'),
+          onNavigateToFaults: () => changePage('Fault Patterns'),
+        );
       case 'Machines':
         return const AllMachinesScreen();
       case 'Breakdowns':
@@ -71,7 +82,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       case 'Settings':
         return const SettingsScreen();
-      case 'Dashboard':
       default:
         return DashboardHomeContent(
           onNavigateToMachines: () => changePage('Machines'),
@@ -90,87 +100,89 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (isMobile) {
       return Scaffold(
         backgroundColor: AppColors.background,
-        appBar: AppBar(
-          backgroundColor: AppColors.background,
-          elevation: 0,
-          scrolledUnderElevation: 0,
-          title: Row(
-            children: [
-              // Industrial Brand Badge (Carbon Slate)
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(10),
+        appBar: _navIndex() == 0
+            ? AppBar(
+                backgroundColor: AppColors.background,
+                elevation: 0,
+                scrolledUnderElevation: 0,
+                title: Row(
+                  children: [
+                    // Industrial Brand Badge (Carbon Slate)
+                    Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.precision_manufacturing_rounded,
+                          color: Colors.white,
+                          size: 19,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    const Text(
+                      'ManufactureOS',
+                      style: TextStyle(
+                        fontSize: 16.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                        letterSpacing: -0.3,
+                        height: 1.25,
+                      ),
+                    ),
+                  ],
                 ),
-                child: const Center(
-                  child: Icon(
-                    Icons.precision_manufacturing_rounded,
-                    color: Colors.white,
-                    size: 19,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              const Text(
-                'ManufactureOS',
-                style: TextStyle(
-                  fontSize: 16.5,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                  letterSpacing: -0.3,
-                  height: 1.25,
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            // Status pill: Floor Active
-            Container(
-              margin: const EdgeInsets.symmetric(vertical: 12),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.runningLight,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.runningBorder),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
+                actions: [
+                  // Status pill: Floor Active
                   Container(
-                    width: 6,
-                    height: 6,
-                    decoration: const BoxDecoration(
-                      color: AppColors.running,
-                      shape: BoxShape.circle,
+                    margin: const EdgeInsets.symmetric(vertical: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.runningLight,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: AppColors.runningBorder),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: const BoxDecoration(
+                            color: AppColors.running,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                        const Text(
+                          'Floor Active',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.running,
+                            height: 1.2,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 5),
-                  const Text(
-                    'Floor Active',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.running,
-                      height: 1.2,
-                    ),
+                  const SizedBox(width: 6),
+                  IconButton(
+                    icon: const Icon(Icons.logout_rounded, color: AppColors.textPrimary, size: 21),
+                    tooltip: 'Sign Out',
+                    onPressed: () async {
+                      await FirebaseAuth.instance.signOut();
+                    },
                   ),
+                  const SizedBox(width: 4),
                 ],
-              ),
-            ),
-            const SizedBox(width: 6),
-            IconButton(
-              icon: const Icon(Icons.logout_rounded, color: AppColors.textPrimary, size: 21),
-              tooltip: 'Sign Out',
-              onPressed: () async {
-                await FirebaseAuth.instance.signOut();
-              },
-            ),
-            const SizedBox(width: 4),
-          ],
-        ),
-        body: getCurrentPage(),
+              )
+            : null,
+        body: _getCurrentPage(),
         bottomNavigationBar: NavigationBar(
           selectedIndex: _navIndex(),
           onDestinationSelected: _onNavDestinationSelected,
@@ -216,27 +228,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
             onDashboardTap: () => changePage('Dashboard'),
             onMachinesTap: () => changePage('Machines'),
             onBreakdownsTap: () => changePage('Breakdowns'),
+            onFaultsTap: () => changePage('Fault Patterns'),
             onSettingsTap: () => changePage('Settings'),
-            onDashboardTap: () {
-              changePage('Dashboard');
-            },
-            onMachinesTap: () {
-              changePage('Machines');
-            },
-            onBreakdownsTap: () {
-              changePage('Breakdowns');
-            },
-            onFaultsTap: () {
-              changePage('Fault Patterns');
-            },
-            onSettingsTap: () {
-              changePage('Settings');
-            },
             onLogoutTap: () async {
               await FirebaseAuth.instance.signOut();
             },
           ),
-          Expanded(child: getCurrentPage()),
+          Expanded(child: _getCurrentPage()),
         ],
       ),
     );
@@ -247,16 +245,15 @@ class DashboardHomeContent extends StatelessWidget {
   final VoidCallback onNavigateToMachines;
   final VoidCallback onNavigateToBreakdowns;
   final VoidCallback onNavigateToSettings;
+  final VoidCallback onNavigateToFaults;
 
   const DashboardHomeContent({
     super.key,
     required this.onNavigateToMachines,
     required this.onNavigateToBreakdowns,
     required this.onNavigateToSettings,
+    required this.onNavigateToFaults,
   });
-  final VoidCallback? onNavigateToFaults;
-
-  const DashboardHomeContent({super.key, this.onNavigateToFaults});
 
   @override
   Widget build(BuildContext context) {
@@ -293,64 +290,6 @@ class DashboardHomeContent extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ------------------------------------------------
-          // TITLE
-          // ------------------------------------------------
-          const Text(
-            'Production Overview',
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Monitor your production lines and machine health',
-            style: TextStyle(color: Colors.grey, fontSize: 16),
-          ),
-          const SizedBox(height: 25),
-
-          // ------------------------------------------------
-          // RECURRING FAULT ALERT STREAM
-          // ------------------------------------------------
-          StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-            stream: FirebaseFirestore.instance
-                .collection('breakdowns')
-                .snapshots(),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) return const SizedBox.shrink();
-              final docs = snapshot.data!.docs;
-              final Map<String, int> machineCounts = {};
-              final Map<String, String> machineNames = {};
-              for (final doc in docs) {
-                final d = doc.data();
-                final id = d['machineId'] as String? ?? '';
-                if (id.isNotEmpty) {
-                  machineCounts[id] = (machineCounts[id] ?? 0) + 1;
-                  machineNames[id] = d['machineName'] as String? ?? id;
-                }
-              }
-              final recurring =
-                  machineCounts.entries.where((e) => e.value >= 2).toList();
-              if (recurring.isEmpty) return const SizedBox.shrink();
-
-              return Container(
-                margin: const EdgeInsets.only(bottom: 25),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.amber.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.amber.shade400),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.warning_amber_rounded,
-                      color: Colors.amber.shade900,
-                      size: 28,
-                    ),
-                    const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -397,7 +336,92 @@ class DashboardHomeContent extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
+
+              // ------------------------------------------------
+              // RECURRING FAULT ALERT STREAM
+              // ------------------------------------------------
+              StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                stream: FirebaseFirestore.instance
+                    .collection('breakdowns')
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) return const SizedBox.shrink();
+                  final docs = snapshot.data!.docs;
+                  final Map<String, int> machineCounts = {};
+                  for (final doc in docs) {
+                    final d = doc.data();
+                    final id = d['machineId'] as String? ?? '';
+                    if (id.isNotEmpty) {
+                      machineCounts[id] = (machineCounts[id] ?? 0) + 1;
+                    }
+                  }
+                  final recurring =
+                      machineCounts.entries.where((e) => e.value >= 2).toList();
+                  if (recurring.isEmpty) return const SizedBox.shrink();
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.amber.shade400),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.warning_amber_rounded,
+                          color: Colors.amber.shade900,
+                          size: 28,
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Warning: ${recurring.length} Machine(s) with Recurring Faults',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: Colors.amber.shade900,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                'Recurring breakdowns detected before shift-end review.',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.brown.shade800,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        ElevatedButton(
+                          onPressed: onNavigateToFaults,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.amber.shade800,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 8,
+                            ),
+                            textStyle: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          child: const Text('View Patterns'),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 12),
 
               // ------------------------------------------------
               // CURRENT STATUS MICRO-HEADER
@@ -427,94 +451,6 @@ class DashboardHomeContent extends StatelessWidget {
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                            'Warning: ${recurring.length} Machine(s) with Recurring Faults',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                              color: Colors.amber.shade900,
-                            ),
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            'Recurring breakdowns detected before shift-end review.',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.brown.shade800,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (onNavigateToFaults != null)
-                      ElevatedButton(
-                        onPressed: onNavigateToFaults,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.amber.shade800,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 8,
-                          ),
-                          textStyle: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        child: const Text('View Patterns'),
-                      ),
-                  ],
-                ),
-              );
-            },
-          ),
-
-          // ------------------------------------------------
-          // MACHINES STREAM (STAT CARDS + PRODUCTION LINES)
-          // ------------------------------------------------
-          StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('machines')
-                .snapshots(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              if (snapshot.hasError) {
-                return const Text(
-                  'Failed to load machine data',
-                  style: TextStyle(color: Colors.red),
-                );
-              }
-
-              final machines = snapshot.data?.docs ?? [];
-              final totalMachines = machines.length;
-
-              final runningMachines = machines.where((machine) {
-                final data = machine.data() as Map<String, dynamic>;
-                return data['status'] == 'Running';
-              }).length;
-
-              final breakdownMachines = machines.where((machine) {
-                final data = machine.data() as Map<String, dynamic>;
-                return data['status'] == 'Breakdown';
-              }).length;
-
-              // Dynamically extract unique line names
-              final lineNames =
-                  machines
-                      .map((machine) {
-                        final data = machine.data() as Map<String, dynamic>;
-                        return (data['lineName'] ?? 'Unknown Line') as String;
-                      })
-                      .toSet()
-                      .toList()
-                    ..sort();
-
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
                     children: [
                       // CLEAN STAT CARDS
                       StatCard(
@@ -770,93 +706,144 @@ class DashboardHomeContent extends StatelessWidget {
     String? statusBadge,
     VoidCallback? onTap,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(14),
-        child: InkWell(
-          onTap: onTap,
+    return _ActivityTileItem(
+      title: title,
+      subtitle: subtitle,
+      value: value,
+      icon: icon,
+      statusBadge: statusBadge,
+      onTap: onTap,
+    );
+  }
+}
+
+class _ActivityTileItem extends StatefulWidget {
+  final String title;
+  final String subtitle;
+  final String value;
+  final IconData icon;
+  final String? statusBadge;
+  final VoidCallback? onTap;
+
+  const _ActivityTileItem({
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.icon,
+    this.statusBadge,
+    this.onTap,
+  });
+
+  @override
+  State<_ActivityTileItem> createState() => _ActivityTileItemState();
+}
+
+class _ActivityTileItemState extends State<_ActivityTileItem> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: widget.onTap != null ? SystemMouseCursors.click : SystemMouseCursors.basic,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+        transform: Matrix4.translationValues(0, _isHovered && widget.onTap != null ? -2.5 : 0, 0),
+        decoration: BoxDecoration(
+          color: Colors.white,
           borderRadius: BorderRadius.circular(14),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Row(
-              children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: AppColors.background,
-                    borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: _isHovered && widget.onTap != null
+                ? AppColors.textPrimary.withValues(alpha: 0.25)
+                : AppColors.border,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: _isHovered && widget.onTap != null
+                  ? Colors.black.withValues(alpha: 0.06)
+                  : Colors.black.withValues(alpha: 0.02),
+              blurRadius: _isHovered && widget.onTap != null ? 10 : 6,
+              offset: Offset(0, _isHovered && widget.onTap != null ? 4 : 2),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(14),
+          child: InkWell(
+            onTap: widget.onTap,
+            borderRadius: BorderRadius.circular(14),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Center(
+                      child: Icon(widget.icon, color: AppColors.textSecondary, size: 20),
+                    ),
                   ),
-                  child: Center(
-                    child: Icon(icon, color: AppColors.textSecondary, size: 20),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.title,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                            height: 1.25,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          widget.subtitle,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                            height: 1.35,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 14,
+                  if (widget.statusBadge != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.getStatusLightBg(widget.statusBadge!),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        widget.statusBadge!,
+                        style: TextStyle(
+                          fontSize: 11.5,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
+                          color: AppColors.getStatusColor(widget.statusBadge!),
                           height: 1.25,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        subtitle,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
-                          height: 1.35,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (statusBadge != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppColors.getStatusLightBg(statusBadge),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      statusBadge,
-                      style: TextStyle(
-                        fontSize: 11.5,
+                    )
+                  else
+                    Text(
+                      widget.value,
+                      style: const TextStyle(
+                        fontSize: 13.5,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.getStatusColor(statusBadge),
-                        height: 1.25,
+                        color: AppColors.textPrimary,
                       ),
                     ),
-                  )
-                else
-                  Text(
-                    value,
-                    style: const TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

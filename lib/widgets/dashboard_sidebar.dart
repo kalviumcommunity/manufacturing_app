@@ -147,7 +147,9 @@ class DashboardSidebar extends StatelessWidget {
           _SidebarItem(
             title: 'Fault Patterns',
             icon: Icons.auto_graph_outlined,
+            activeIcon: Icons.auto_graph_rounded,
             selected: selectedItem == 'Fault Patterns',
+            isCompact: isCompact,
             onTap: onFaultsTap,
           ),
           _SidebarItem(

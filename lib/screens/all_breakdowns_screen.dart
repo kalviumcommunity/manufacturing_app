@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
 import '../theme/app_theme.dart';
 import '../utils/responsive.dart';
 import '../widgets/breakdown_card.dart';
@@ -20,6 +19,24 @@ class _AllBreakdownsScreenState extends State<AllBreakdownsScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   late String _currentSeverity;
+  bool _glideForward = true;
+
+  int _getSeverityIndex(String sev) {
+    switch (sev) {
+      case 'All':
+        return 0;
+      case 'Critical':
+        return 1;
+      case 'High':
+        return 2;
+      case 'Medium':
+        return 3;
+      case 'Low':
+        return 4;
+      default:
+        return 0;
+    }
+  }
 
   @override
   void initState() {
@@ -34,7 +51,11 @@ class _AllBreakdownsScreenState extends State<AllBreakdownsScreen> {
   }
 
   void _setSeverity(String sev) {
+    if (_currentSeverity == sev) return;
+    final newIndex = _getSeverityIndex(sev);
+    final oldIndex = _getSeverityIndex(_currentSeverity);
     setState(() {
+      _glideForward = newIndex >= oldIndex;
       _currentSeverity = sev;
     });
   }
@@ -277,89 +298,115 @@ class _AllBreakdownsScreenState extends State<AllBreakdownsScreen> {
 
                     const SizedBox(height: 20),
 
-                    // LIST OF BREAKDOWNS
-                    if (filteredList.isEmpty)
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(40),
-                        decoration: BoxDecoration(
-                          color: AppColors.cardBg,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppColors.border),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.verified_rounded,
-                              size: 40,
-                              color: AppColors.running,
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              _searchQuery.isNotEmpty
-                                  ? 'No breakdowns matching "$_searchQuery"'
-                                  : 'No incidents with severity "$_currentSeverity"',
-                              style: const TextStyle(
-                                fontSize: 15.5,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textPrimary,
+                    // LIST OF BREAKDOWNS WITH SMOOTH GLIDING TRANSITION
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      reverseDuration: const Duration(milliseconds: 200),
+                      switchInCurve: Curves.easeOutCubic,
+                      switchOutCurve: Curves.easeInCubic,
+                      transitionBuilder: (child, animation) {
+                        final inOffset = Tween<Offset>(
+                          begin: Offset(_glideForward ? 0.07 : -0.07, 0.0),
+                          end: Offset.zero,
+                        ).animate(CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeOutCubic,
+                        ));
+                        return FadeTransition(
+                          opacity: animation,
+                          child: SlideTransition(
+                            position: inOffset,
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: KeyedSubtree(
+                        key: ValueKey('breakdowns-view-$_currentSeverity-$_searchQuery'),
+                        child: filteredList.isEmpty
+                            ? Container(
+                                key: const ValueKey('empty-breakdowns'),
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(40),
+                                decoration: BoxDecoration(
+                                  color: AppColors.cardBg,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: AppColors.border),
+                                ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(
+                                      Icons.verified_rounded,
+                                      size: 40,
+                                      color: AppColors.running,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      _searchQuery.isNotEmpty
+                                          ? 'No breakdowns matching "$_searchQuery"'
+                                          : 'No incidents with severity "$_currentSeverity"',
+                                      style: const TextStyle(
+                                        fontSize: 15.5,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    const Text(
+                                      'Machines in this scope are operating normally.',
+                                      style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : Column(
+                                key: ValueKey('list-col-$_currentSeverity-$_searchQuery'),
+                                children: filteredList.map((doc) {
+                                  final data = doc.data();
+                                  final timestamp = data['timestamp'];
+                                  String reportedTime = 'Recent';
+
+                                  if (timestamp is Timestamp) {
+                                    final date = timestamp.toDate();
+                                    reportedTime =
+                                        '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year} '
+                                        '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+                                  }
+
+                                  final machineId = data['machineId'] as String? ?? '';
+                                  final machineName = data['machineName'] ?? 'Unknown Machine';
+                                  final lineName = data['lineName'] ?? 'Unknown Line';
+
+                                  return Padding(
+                                    padding: const EdgeInsets.only(bottom: 10),
+                                    child: BreakdownCard(
+                                      machine: machineName,
+                                      line: lineName,
+                                      issue: data['description'] ?? 'No description provided.',
+                                      time: reportedTime,
+                                      severity: data['severity'] ?? 'Medium',
+                                      reportedBy: data['reportedBy'],
+                                      onTap: machineId.isNotEmpty
+                                          ? () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) => MachineDetailsScreen(
+                                                    machineId: machineId,
+                                                    machineName: machineName,
+                                                    lineName: lineName,
+                                                    status: 'Breakdown',
+                                                  ),
+                                                ),
+                                              );
+                                            }
+                                          : null,
+                                    ),
+                                  );
+                                }).toList(),
                               ),
-                            ),
-                            const SizedBox(height: 6),
-                            const Text(
-                              'Machines in this scope are operating normally.',
-                              style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
-                            ),
-                          ],
-                        ),
-                      )
-                    else
-                      Column(
-                        children: filteredList.map((doc) {
-                          final data = doc.data();
-                          final timestamp = data['timestamp'];
-                          String reportedTime = 'Recent';
-
-                          if (timestamp is Timestamp) {
-                            final date = timestamp.toDate();
-                            reportedTime =
-                                '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year} '
-                                '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-                          }
-
-                          final machineId = data['machineId'] as String? ?? '';
-                          final machineName = data['machineName'] ?? 'Unknown Machine';
-                          final lineName = data['lineName'] ?? 'Unknown Line';
-
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: BreakdownCard(
-                              machine: machineName,
-                              line: lineName,
-                              issue: data['description'] ?? 'No description provided.',
-                              time: reportedTime,
-                              severity: data['severity'] ?? 'Medium',
-                              reportedBy: data['reportedBy'],
-                              onTap: machineId.isNotEmpty
-                                  ? () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => MachineDetailsScreen(
-                                            machineId: machineId,
-                                            machineName: machineName,
-                                            lineName: lineName,
-                                            status: 'Breakdown',
-                                          ),
-                                        ),
-                                      );
-                                    }
-                                  : null,
-                            ),
-                          );
-                        }).toList(),
                       ),
+                    ),
                     const SizedBox(height: 30),
                   ],
                 ),
@@ -395,14 +442,26 @@ class _SeverityFilterChip extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
+          duration: const Duration(milliseconds: 240),
+          curve: Curves.easeOutCubic,
+          transform: Matrix4.translationValues(0, isSelected ? -2 : 0, 0),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
           decoration: BoxDecoration(
-            color: isSelected ? color.withValues(alpha: 0.18) : AppColors.surface,
+            color: isSelected ? color.withValues(alpha: 0.16) : AppColors.surface,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: isSelected ? color : AppColors.border,
+              width: isSelected ? 1.5 : 1,
             ),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: color.withValues(alpha: 0.25),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : [],
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -411,13 +470,15 @@ class _SeverityFilterChip extends StatelessWidget {
                 label,
                 style: TextStyle(
                   color: isSelected ? color : AppColors.textSecondary,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
                   fontSize: 12.5,
                 ),
               ),
               const SizedBox(width: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 240),
+                curve: Curves.easeOutCubic,
+                padding: const EdgeInsets.symmetric(horizontal: 6.5, vertical: 2),
                 decoration: BoxDecoration(
                   color: isSelected
                       ? color.withValues(alpha: 0.25)

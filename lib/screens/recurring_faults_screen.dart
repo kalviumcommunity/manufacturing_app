@@ -46,7 +46,7 @@ class RecurringFaultsScreen extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
+                        color: Colors.green.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -107,9 +107,9 @@ class RecurringFaultsScreen extends StatelessWidget {
           // Find most affected line
           String worstLine = 'None';
           int maxLineFaults = 0;
-          lineFaultCounts.forEach((line, count) {
-            if (count > maxLineFaults) {
-              maxLineFaults = count;
+          lineFaultCounts.forEach((line, faultCount) {
+            if (faultCount > maxLineFaults) {
+              maxLineFaults = faultCount;
               worstLine = line;
             }
           });
@@ -184,9 +184,9 @@ class RecurringFaultsScreen extends StatelessWidget {
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.08),
+                      color: Colors.red.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.red.withOpacity(0.3)),
+                      border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -336,8 +336,8 @@ class RecurringFaultsScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(14),
                         side: BorderSide(
                           color: isHighRisk
-                              ? Colors.red.withOpacity(0.4)
-                              : Colors.orange.withOpacity(0.4),
+                              ? Colors.red.withValues(alpha: 0.4)
+                              : Colors.orange.withValues(alpha: 0.4),
                         ),
                       ),
                       child: Padding(
@@ -353,7 +353,7 @@ class RecurringFaultsScreen extends StatelessWidget {
                                     color: (isHighRisk
                                             ? Colors.red
                                             : Colors.orange)
-                                        .withOpacity(0.12),
+                                        .withValues(alpha: 0.12),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: Icon(
@@ -401,7 +401,7 @@ class RecurringFaultsScreen extends StatelessWidget {
                                   backgroundColor: (isHighRisk
                                           ? Colors.red
                                           : Colors.orange)
-                                      .withOpacity(0.15),
+                                      .withValues(alpha: 0.15),
                                   side: BorderSide.none,
                                   visualDensity: VisualDensity.compact,
                                 ),
