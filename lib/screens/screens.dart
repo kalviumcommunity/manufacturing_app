@@ -12,3 +12,4 @@ export 'admin_screen.dart';
 export 'add_machine_screen.dart';
 export 'loading_screen.dart';
 export 'recurring_faults_screen.dart';
+export 'all_inspections_screen.dart';
