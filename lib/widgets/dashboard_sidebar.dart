@@ -7,6 +7,7 @@ class DashboardSidebar extends StatelessWidget {
   final VoidCallback onDashboardTap;
   final VoidCallback onMachinesTap;
   final VoidCallback onBreakdownsTap;
+  final VoidCallback? onInspectionsTap;
   final VoidCallback onFaultsTap;
   final VoidCallback onSettingsTap;
   final VoidCallback onLogoutTap;
@@ -18,6 +19,7 @@ class DashboardSidebar extends StatelessWidget {
     required this.onDashboardTap,
     required this.onMachinesTap,
     required this.onBreakdownsTap,
+    this.onInspectionsTap,
     required this.onFaultsTap,
     required this.onSettingsTap,
     required this.onLogoutTap,
@@ -144,6 +146,15 @@ class DashboardSidebar extends StatelessWidget {
             isCompact: isCompact,
             onTap: onBreakdownsTap,
           ),
+          if (onInspectionsTap != null)
+            _SidebarItem(
+              title: 'Inspections',
+              icon: Icons.fact_check_outlined,
+              activeIcon: Icons.fact_check_rounded,
+              selected: selectedItem == 'Inspections',
+              isCompact: isCompact,
+              onTap: onInspectionsTap!,
+            ),
           _SidebarItem(
             title: 'Fault Patterns',
             icon: Icons.auto_graph_outlined,

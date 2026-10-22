@@ -688,39 +688,74 @@ class _MachineInspectionsTab extends StatelessWidget {
             final data = docs[index].data();
             final result = data['result'] ?? 'Passed';
             final desc = data['description'] ?? 'Routine inspection';
-            final isPassed = result == 'Passed';
-            final color = isPassed ? AppColors.running : AppColors.breakdown;
+            final inspector = data['employeeEmail'] ?? '';
+            final timestamp = data['createdAt'];
 
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(8),
+            final Color color = result == 'Passed'
+                ? AppColors.running
+                : (result == 'Needs Attention' ? AppColors.maintenance : AppColors.breakdown);
+
+            final IconData icon = result == 'Passed'
+                ? Icons.check_circle_rounded
+                : (result == 'Needs Attention' ? Icons.warning_amber_rounded : Icons.cancel_rounded);
+
+            String formattedTime = 'Recent';
+            if (timestamp is Timestamp) {
+              final d = timestamp.toDate();
+              formattedTime =
+                  '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year} ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+            }
+
+            return Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: color.withValues(alpha: 0.25)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(icon, color: color, size: 18),
                   ),
-                  child: Icon(
-                    isPassed ? Icons.check_circle_rounded : Icons.cancel_rounded,
-                    color: color,
-                    size: 18,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              result,
+                              style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 13),
+                            ),
+                            Text(
+                              formattedTime,
+                              style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(desc, style: const TextStyle(fontSize: 13, color: AppColors.textPrimary)),
+                        if (inspector.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Text(
+                            'Inspector: $inspector',
+                            style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        result,
-                        style: TextStyle(color: color, fontWeight: FontWeight.w700),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(desc, style: const TextStyle(fontSize: 13, color: AppColors.textPrimary)),
-                    ],
-                  ),
-                ),
-              ],
+                ],
+              ),
             );
           },
         );

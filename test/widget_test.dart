@@ -71,4 +71,34 @@ void main() {
     expect(Responsive.mobileBreakpoint, 768);
     expect(Responsive.tabletBreakpoint, 1100);
   });
+
+  testWidgets('BreakdownSummaryCard renders inspection summary metrics and handles selection', (WidgetTester tester) async {
+    bool tapped = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: BreakdownSummaryCard(
+            title: 'Passed',
+            value: '18',
+            icon: Icons.check_circle_rounded,
+            color: AppColors.running,
+            isSelected: true,
+            onTap: () {
+              tapped = true;
+            },
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Passed'), findsOneWidget);
+    expect(find.text('18'), findsOneWidget);
+    expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
+
+    await tester.tap(find.text('Passed'));
+    await tester.pump();
+
+    expect(tapped, isTrue);
+  });
 }

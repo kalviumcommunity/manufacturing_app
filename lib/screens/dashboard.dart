@@ -8,6 +8,7 @@ import '../widgets/dashboard_sidebar.dart';
 
 import '../widgets/stat_card.dart';
 import 'all_breakdowns_screen.dart';
+import 'all_inspections_screen.dart';
 import 'all_machines_screen.dart';
 
 import 'machine_details.dart';
@@ -71,15 +72,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
           onNavigateToBreakdowns: () => changePage('Breakdowns'),
           onNavigateToSettings: () => changePage('Settings'),
           onNavigateToFaults: () => changePage('Fault Patterns'),
+          onNavigateToInspections: () => changePage('Inspections'),
         );
       case 'Machines':
         return const AllMachinesScreen();
       case 'Breakdowns':
         return const AllBreakdownsScreen();
-
+      case 'Inspections':
+        return const AllInspectionsScreen();
       case 'Fault Patterns':
         return const RecurringFaultsScreen();
-
       case 'Settings':
         return const SettingsScreen();
       default:
@@ -88,6 +90,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           onNavigateToBreakdowns: () => changePage('Breakdowns'),
           onNavigateToSettings: () => changePage('Settings'),
           onNavigateToFaults: () => changePage('Fault Patterns'),
+          onNavigateToInspections: () => changePage('Inspections'),
         );
     }
   }
@@ -100,7 +103,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (isMobile) {
       return Scaffold(
         backgroundColor: AppColors.background,
-        appBar: _navIndex() == 0
+        appBar: selectedItem == 'Dashboard'
             ? AppBar(
                 backgroundColor: AppColors.background,
                 elevation: 0,
@@ -228,6 +231,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             onDashboardTap: () => changePage('Dashboard'),
             onMachinesTap: () => changePage('Machines'),
             onBreakdownsTap: () => changePage('Breakdowns'),
+            onInspectionsTap: () => changePage('Inspections'),
             onFaultsTap: () => changePage('Fault Patterns'),
             onSettingsTap: () => changePage('Settings'),
             onLogoutTap: () async {
@@ -246,6 +250,7 @@ class DashboardHomeContent extends StatelessWidget {
   final VoidCallback onNavigateToBreakdowns;
   final VoidCallback onNavigateToSettings;
   final VoidCallback onNavigateToFaults;
+  final VoidCallback onNavigateToInspections;
 
   const DashboardHomeContent({
     super.key,
@@ -253,6 +258,7 @@ class DashboardHomeContent extends StatelessWidget {
     required this.onNavigateToBreakdowns,
     required this.onNavigateToSettings,
     required this.onNavigateToFaults,
+    required this.onNavigateToInspections,
   });
 
   @override
@@ -552,8 +558,8 @@ class DashboardHomeContent extends StatelessWidget {
                         width: double.infinity,
                         height: 44,
                         child: OutlinedButton.icon(
-                          onPressed: onNavigateToBreakdowns,
-                          icon: const Icon(Icons.history_rounded, size: 18),
+                          onPressed: onNavigateToInspections,
+                          icon: const Icon(Icons.fact_check_outlined, size: 18),
                           label: const Text('View Inspection & Audit Logs'),
                           style: OutlinedButton.styleFrom(
                             backgroundColor: Colors.white,
