@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:manufacturing_app/screens/loading_screen.dart';
 import 'package:manufacturing_app/theme/app_theme.dart';
 import 'package:manufacturing_app/utils/responsive.dart';
+import 'package:manufacturing_app/widgets/breakdown_summary_card.dart';
+import 'package:manufacturing_app/widgets/production_line_card.dart';
 import 'package:manufacturing_app/widgets/pulsing_status_badge.dart';
 import 'package:manufacturing_app/widgets/stat_card.dart';
 
@@ -100,5 +102,24 @@ void main() {
     await tester.pump();
 
     expect(tapped, isTrue);
+  });
+
+  testWidgets('ProductionLineCard renders line name, machine count, and status badge', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: ProductionLineCard(
+            lineName: 'Assembly Line 1',
+            machineCount: 5,
+            status: 'Running',
+            statusColor: AppColors.running,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Assembly Line 1'), findsOneWidget);
+    expect(find.text('5 machines'), findsOneWidget);
+    expect(find.text('Running'), findsOneWidget);
   });
 }

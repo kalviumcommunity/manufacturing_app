@@ -11,6 +11,7 @@ import 'all_breakdowns_screen.dart';
 import 'all_inspections_screen.dart';
 import 'all_machines_screen.dart';
 
+import 'all_production_lines_screen.dart';
 import 'machine_details.dart';
 import 'recurring_faults_screen.dart';
 import 'settings_screen.dart';
@@ -512,7 +513,14 @@ class DashboardHomeContent extends StatelessWidget {
                         width: double.infinity,
                         height: 44,
                         child: OutlinedButton.icon(
-                          onPressed: onNavigateToMachines,
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const AllProductionLinesScreen(),
+                              ),
+                            );
+                          },
                           icon: const Icon(Icons.alt_route_rounded, size: 18),
                           label: const Text('View Production Lines'),
                           style: OutlinedButton.styleFrom(
