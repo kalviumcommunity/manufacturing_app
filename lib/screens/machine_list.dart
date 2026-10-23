@@ -33,7 +33,6 @@ class _MachineListScreenState extends State<MachineListScreen> {
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
         stream: FirebaseFirestore.instance
             .collection('machines')
-            .where('lineName', isEqualTo: widget.lineName)
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -49,7 +48,12 @@ class _MachineListScreenState extends State<MachineListScreen> {
             );
           }
 
-          final allMachines = snapshot.data?.docs ?? [];
+          final allDocs = snapshot.data?.docs ?? [];
+          final allMachines = allDocs.where((m) {
+            final data = m.data();
+            final line = (data['lineName'] ?? data['line'] ?? 'Main Floor').toString().trim();
+            return line.toLowerCase() == widget.lineName.trim().toLowerCase();
+          }).toList();
 
           final runningCount = allMachines.where((m) => (m.data()['status'] ?? '') == 'Running').length;
           final breakdownCount = allMachines.where((m) => (m.data()['status'] ?? '') == 'Breakdown').length;

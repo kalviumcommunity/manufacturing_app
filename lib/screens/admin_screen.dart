@@ -5,6 +5,7 @@ import '../theme/app_theme.dart';
 import '../utils/responsive.dart';
 import '../widgets/stat_card.dart';
 import 'all_machines_screen.dart';
+import 'all_production_lines_screen.dart';
 import 'all_breakdowns_screen.dart';
 import 'all_inspections_screen.dart';
 import 'recurring_faults_screen.dart';
@@ -658,7 +659,7 @@ class _AdminScreenState extends State<AdminScreen> {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const AllMachinesScreen()),
+                      MaterialPageRoute(builder: (_) => const AllProductionLinesScreen()),
                     );
                   },
                 ),
