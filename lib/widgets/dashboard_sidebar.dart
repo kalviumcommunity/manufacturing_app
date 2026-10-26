@@ -6,24 +6,28 @@ class DashboardSidebar extends StatelessWidget {
   final String selectedItem;
   final VoidCallback onDashboardTap;
   final VoidCallback onMachinesTap;
+  final VoidCallback? onProductionLinesTap;
   final VoidCallback onBreakdownsTap;
   final VoidCallback? onInspectionsTap;
   final VoidCallback onFaultsTap;
   final VoidCallback onSettingsTap;
   final VoidCallback onLogoutTap;
   final bool isCompact;
+  final String? userEmail;
 
   const DashboardSidebar({
     super.key,
     required this.selectedItem,
     required this.onDashboardTap,
     required this.onMachinesTap,
+    this.onProductionLinesTap,
     required this.onBreakdownsTap,
     this.onInspectionsTap,
     required this.onFaultsTap,
     required this.onSettingsTap,
     required this.onLogoutTap,
     this.isCompact = false,
+    this.userEmail,
   });
 
   @override
@@ -82,19 +86,17 @@ class DashboardSidebar extends StatelessWidget {
                           ),
                         ),
                         SizedBox(height: 3),
-                        Row(
-                          children: [
-                            Text(
-                              'EQUIPMENT NETWORK',
-                              style: TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 9.5,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.8,
-                                height: 1.3,
-                              ),
-                            ),
-                          ],
+                        Text(
+                          'EQUIPMENT NETWORK',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 9.0,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.6,
+                            height: 1.2,
+                          ),
                         ),
                       ],
                     ),
@@ -105,74 +107,92 @@ class DashboardSidebar extends StatelessWidget {
           ),
           const Divider(color: AppColors.sidebarBorder, height: 1),
 
-          if (!isCompact) ...[
-            const Padding(
-              padding: EdgeInsets.fromLTRB(22, 22, 22, 10),
-              child: Text(
-                'MAIN MENU',
-                style: TextStyle(
-                  color: AppColors.textMuted,
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.2,
-                ),
+          // SCROLLABLE MENU ITEMS
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.zero,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (!isCompact) ...[
+                    const Padding(
+                      padding: EdgeInsets.fromLTRB(22, 16, 22, 10),
+                      child: Text(
+                        'MAIN MENU',
+                        style: TextStyle(
+                          color: AppColors.textMuted,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ),
+                  ] else
+                    const SizedBox(height: 12),
+
+                  _SidebarItem(
+                    title: 'Dashboard',
+                    icon: Icons.dashboard_outlined,
+                    activeIcon: Icons.dashboard_rounded,
+                    selected: selectedItem == 'Dashboard',
+                    isCompact: isCompact,
+                    onTap: onDashboardTap,
+                  ),
+                  _SidebarItem(
+                    title: 'Machines',
+                    icon: Icons.precision_manufacturing_outlined,
+                    activeIcon: Icons.precision_manufacturing_rounded,
+                    selected: selectedItem == 'Machines',
+                    isCompact: isCompact,
+                    onTap: onMachinesTap,
+                  ),
+                  if (onProductionLinesTap != null)
+                    _SidebarItem(
+                      title: 'Production Lines',
+                      icon: Icons.alt_route_outlined,
+                      activeIcon: Icons.alt_route_rounded,
+                      selected: selectedItem == 'Production Lines',
+                      isCompact: isCompact,
+                      onTap: onProductionLinesTap!,
+                    ),
+                  _SidebarItem(
+                    title: 'Breakdowns',
+                    icon: Icons.warning_amber_outlined,
+                    activeIcon: Icons.warning_amber_rounded,
+                    selected: selectedItem == 'Breakdowns',
+                    isCompact: isCompact,
+                    onTap: onBreakdownsTap,
+                  ),
+                  if (onInspectionsTap != null)
+                    _SidebarItem(
+                      title: 'Inspections',
+                      icon: Icons.fact_check_outlined,
+                      activeIcon: Icons.fact_check_rounded,
+                      selected: selectedItem == 'Inspections',
+                      isCompact: isCompact,
+                      onTap: onInspectionsTap!,
+                    ),
+                  _SidebarItem(
+                    title: 'Fault Patterns',
+                    icon: Icons.auto_graph_outlined,
+                    activeIcon: Icons.auto_graph_rounded,
+                    selected: selectedItem == 'Fault Patterns',
+                    isCompact: isCompact,
+                    onTap: onFaultsTap,
+                  ),
+                  _SidebarItem(
+                    title: 'Settings',
+                    icon: Icons.settings_outlined,
+                    activeIcon: Icons.settings_rounded,
+                    selected: selectedItem == 'Settings',
+                    isCompact: isCompact,
+                    onTap: onSettingsTap,
+                  ),
+                  const SizedBox(height: 12),
+                ],
               ),
             ),
-          ] else
-            const SizedBox(height: 16),
-
-          // MENU ITEMS
-          _SidebarItem(
-            title: 'Dashboard',
-            icon: Icons.dashboard_outlined,
-            activeIcon: Icons.dashboard_rounded,
-            selected: selectedItem == 'Dashboard',
-            isCompact: isCompact,
-            onTap: onDashboardTap,
           ),
-          _SidebarItem(
-            title: 'Machines',
-            icon: Icons.precision_manufacturing_outlined,
-            activeIcon: Icons.precision_manufacturing_rounded,
-            selected: selectedItem == 'Machines',
-            isCompact: isCompact,
-            onTap: onMachinesTap,
-          ),
-          _SidebarItem(
-            title: 'Breakdowns',
-            icon: Icons.warning_amber_outlined,
-            activeIcon: Icons.warning_amber_rounded,
-            selected: selectedItem == 'Breakdowns',
-            isCompact: isCompact,
-            onTap: onBreakdownsTap,
-          ),
-          if (onInspectionsTap != null)
-            _SidebarItem(
-              title: 'Inspections',
-              icon: Icons.fact_check_outlined,
-              activeIcon: Icons.fact_check_rounded,
-              selected: selectedItem == 'Inspections',
-              isCompact: isCompact,
-              onTap: onInspectionsTap!,
-            ),
-          _SidebarItem(
-            title: 'Fault Patterns',
-            icon: Icons.auto_graph_outlined,
-            activeIcon: Icons.auto_graph_rounded,
-            selected: selectedItem == 'Fault Patterns',
-            isCompact: isCompact,
-            onTap: onFaultsTap,
-          ),
-          _SidebarItem(
-            title: 'Settings',
-            icon: Icons.settings_outlined,
-            activeIcon: Icons.settings_rounded,
-            selected: selectedItem == 'Settings',
-            isCompact: isCompact,
-            onTap: onSettingsTap,
-          ),
-
-          const Spacer(),
           const Divider(color: AppColors.sidebarBorder, height: 1),
 
           // USER PROFILE & LOGOUT
@@ -180,96 +200,7 @@ class DashboardSidebar extends StatelessWidget {
             padding: EdgeInsets.all(isCompact ? 12 : 18),
             child: Column(
               children: [
-                StreamBuilder<User?>(
-                  stream: FirebaseAuth.instance.authStateChanges(),
-                  builder: (context, snapshot) {
-                    final email = snapshot.data?.email ?? 'Operator';
-                    final initial = email.isNotEmpty ? email[0].toUpperCase() : 'O';
-
-                    if (isCompact) {
-                      return Tooltip(
-                        message: email,
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: AppColors.sidebarSurface,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: AppColors.sidebarBorder),
-                          ),
-                          child: Center(
-                            child: Text(
-                              initial,
-                              style: const TextStyle(
-                                color: AppColors.textPrimary,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }
-
-                    return Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppColors.sidebarSurface,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.sidebarBorder),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              color: AppColors.surface,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: AppColors.border),
-                            ),
-                            child: Center(
-                              child: Text(
-                                initial,
-                                style: const TextStyle(
-                                  color: AppColors.textPrimary,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  email,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: AppColors.textPrimary,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                const Text(
-                                  'Authenticated',
-                                  style: TextStyle(
-                                    color: AppColors.running,
-                                    fontSize: 10.5,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
+                _buildUserProfile(),
                 const SizedBox(height: 12),
                 if (!isCompact)
                   SizedBox(
@@ -299,6 +230,109 @@ class DashboardSidebar extends StatelessWidget {
                       size: 20,
                     ),
                   ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  Widget _buildUserProfile() {
+    if (userEmail != null) {
+      return _buildUserCard(userEmail!);
+    }
+    try {
+      return StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, snapshot) {
+          final email = snapshot.data?.email ?? 'Operator';
+          return _buildUserCard(email);
+        },
+      );
+    } catch (_) {
+      return _buildUserCard('Operator');
+    }
+  }
+
+  Widget _buildUserCard(String email) {
+    final initial = email.isNotEmpty ? email[0].toUpperCase() : 'O';
+
+    if (isCompact) {
+      return Tooltip(
+        message: email,
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: AppColors.sidebarSurface,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppColors.sidebarBorder),
+          ),
+          child: Center(
+            child: Text(
+              initial,
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.sidebarSurface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.sidebarBorder),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Center(
+              child: Text(
+                initial,
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  email,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                const Text(
+                  'Authenticated',
+                  style: TextStyle(
+                    color: AppColors.running,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ],
             ),
           ),

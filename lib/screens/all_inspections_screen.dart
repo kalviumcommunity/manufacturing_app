@@ -394,7 +394,7 @@ class _AllInspectionsScreenState extends State<AllInspectionsScreen> {
                                 shrinkWrap: true,
                                 physics: const NeverScrollableScrollPhysics(),
                                 itemCount: filteredList.length,
-                                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                                separatorBuilder: (_, _) => const SizedBox(height: 12),
                                 itemBuilder: (context, index) {
                                   final doc = filteredList[index];
                                   final data = doc.data();
@@ -475,7 +475,12 @@ class _AllInspectionsScreenState extends State<AllInspectionsScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => MachineDetailsScreen(machineId: machineId),
+                      builder: (_) => MachineDetailsScreen(
+                        machineId: machineId,
+                        machineName: machineName,
+                        lineName: 'Production Line',
+                        status: 'Running',
+                      ),
                     ),
                   );
                 }

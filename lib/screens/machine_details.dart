@@ -16,9 +16,9 @@ class MachineDetailsScreen extends StatefulWidget {
   const MachineDetailsScreen({
     super.key,
     required this.machineId,
-    required this.machineName,
-    required this.lineName,
-    required this.status,
+    this.machineName = 'Machine Details',
+    this.lineName = 'Production Line',
+    this.status = 'Running',
   });
 
   @override

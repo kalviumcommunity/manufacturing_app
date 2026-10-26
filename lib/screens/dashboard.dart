@@ -70,6 +70,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       case 'Dashboard':
         return DashboardHomeContent(
           onNavigateToMachines: () => changePage('Machines'),
+          onNavigateToProductionLines: () => changePage('Production Lines'),
           onNavigateToBreakdowns: () => changePage('Breakdowns'),
           onNavigateToSettings: () => changePage('Settings'),
           onNavigateToFaults: () => changePage('Fault Patterns'),
@@ -77,6 +78,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         );
       case 'Machines':
         return const AllMachinesScreen();
+      case 'Production Lines':
+        return const AllProductionLinesScreen();
       case 'Breakdowns':
         return const AllBreakdownsScreen();
       case 'Inspections':
@@ -88,6 +91,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       default:
         return DashboardHomeContent(
           onNavigateToMachines: () => changePage('Machines'),
+          onNavigateToProductionLines: () => changePage('Production Lines'),
           onNavigateToBreakdowns: () => changePage('Breakdowns'),
           onNavigateToSettings: () => changePage('Settings'),
           onNavigateToFaults: () => changePage('Fault Patterns'),
@@ -231,6 +235,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             isCompact: isTablet,
             onDashboardTap: () => changePage('Dashboard'),
             onMachinesTap: () => changePage('Machines'),
+            onProductionLinesTap: () => changePage('Production Lines'),
             onBreakdownsTap: () => changePage('Breakdowns'),
             onInspectionsTap: () => changePage('Inspections'),
             onFaultsTap: () => changePage('Fault Patterns'),
@@ -248,6 +253,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
 class DashboardHomeContent extends StatelessWidget {
   final VoidCallback onNavigateToMachines;
+  final VoidCallback onNavigateToProductionLines;
   final VoidCallback onNavigateToBreakdowns;
   final VoidCallback onNavigateToSettings;
   final VoidCallback onNavigateToFaults;
@@ -256,6 +262,7 @@ class DashboardHomeContent extends StatelessWidget {
   const DashboardHomeContent({
     super.key,
     required this.onNavigateToMachines,
+    required this.onNavigateToProductionLines,
     required this.onNavigateToBreakdowns,
     required this.onNavigateToSettings,
     required this.onNavigateToFaults,
@@ -513,14 +520,7 @@ class DashboardHomeContent extends StatelessWidget {
                         width: double.infinity,
                         height: 44,
                         child: OutlinedButton.icon(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const AllProductionLinesScreen(),
-                              ),
-                            );
-                          },
+                          onPressed: onNavigateToProductionLines,
                           icon: const Icon(Icons.alt_route_rounded, size: 18),
                           label: const Text('View Production Lines'),
                           style: OutlinedButton.styleFrom(

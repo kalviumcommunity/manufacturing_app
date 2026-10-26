@@ -7,6 +7,8 @@ import 'package:manufacturing_app/utils/responsive.dart';
 import 'package:manufacturing_app/widgets/breakdown_summary_card.dart';
 import 'package:manufacturing_app/widgets/production_line_card.dart';
 import 'package:manufacturing_app/widgets/pulsing_status_badge.dart';
+import 'package:manufacturing_app/screens/machine_details.dart';
+import 'package:manufacturing_app/widgets/dashboard_sidebar.dart';
 import 'package:manufacturing_app/widgets/stat_card.dart';
 
 void main() {
@@ -119,7 +121,44 @@ void main() {
     );
 
     expect(find.text('Assembly Line 1'), findsOneWidget);
-    expect(find.text('5 machines'), findsOneWidget);
+    expect(find.text('5 Machines'), findsOneWidget);
     expect(find.text('Running'), findsOneWidget);
+  });
+
+  testWidgets('DashboardSidebar renders Production Lines menu item and handles tap', (WidgetTester tester) async {
+    bool linesTapped = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: DashboardSidebar(
+            selectedItem: 'Dashboard',
+            onDashboardTap: () {},
+            onMachinesTap: () {},
+            onProductionLinesTap: () {
+              linesTapped = true;
+            },
+            onBreakdownsTap: () {},
+            onFaultsTap: () {},
+            onSettingsTap: () {},
+            onLogoutTap: () {},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Production Lines'), findsOneWidget);
+    await tester.tap(find.text('Production Lines'));
+    await tester.pump();
+
+    expect(linesTapped, isTrue);
+  });
+
+  test('MachineDetailsScreen constructor has safe defaults', () {
+    const screen = MachineDetailsScreen(machineId: 'test-mach-1');
+    expect(screen.machineId, 'test-mach-1');
+    expect(screen.machineName, 'Machine Details');
+    expect(screen.lineName, 'Production Line');
+    expect(screen.status, 'Running');
   });
 }
