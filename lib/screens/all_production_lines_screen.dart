@@ -421,7 +421,7 @@ class _AllProductionLinesScreenState extends State<AllProductionLinesScreen> {
                                 shrinkWrap: true,
                                 physics: const NeverScrollableScrollPhysics(),
                                 itemCount: filteredLines.length,
-                                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                                separatorBuilder: (_, _) => const SizedBox(height: 12),
                                 itemBuilder: (context, index) {
                                   final line = filteredLines[index];
                                   return ProductionLineCard(
