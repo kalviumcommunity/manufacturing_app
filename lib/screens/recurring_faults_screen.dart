@@ -133,100 +133,109 @@ class RecurringFaultsScreen extends StatelessWidget {
 
                 // Metrics Row / Grid (Responsive)
                 if (Responsive.isMobile(context)) ...[
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildMetricCard(
-                          title: 'Recurring Faults',
-                          value: '${recurringMachines.length}',
-                          subtitle: 'Machines affected',
-                          color: recurringMachines.isNotEmpty
-                              ? Colors.red
-                              : Colors.green,
-                          icon: Icons.warning_amber_rounded,
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: _buildMetricCard(
+                            title: 'Recurring Faults',
+                            value: '${recurringMachines.length}',
+                            subtitle: 'Machines affected',
+                            color: recurringMachines.isNotEmpty
+                                ? Colors.red
+                                : Colors.green,
+                            icon: Icons.warning_amber_rounded,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildMetricCard(
-                          title: 'High Risk',
-                          value: '$highRiskCount',
-                          subtitle: '≥3 breakdowns',
-                          color: Colors.red.shade800,
-                          icon: Icons.dangerous_outlined,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildMetricCard(
+                            title: 'High Risk',
+                            value: '$highRiskCount',
+                            subtitle: '≥3 breakdowns',
+                            color: Colors.red.shade800,
+                            icon: Icons.dangerous_outlined,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildMetricCard(
-                          title: 'Moderate Risk',
-                          value: '$moderateRiskCount',
-                          subtitle: '2 breakdowns',
-                          color: Colors.orange,
-                          icon: Icons.report_problem_outlined,
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: _buildMetricCard(
+                            title: 'Moderate Risk',
+                            value: '$moderateRiskCount',
+                            subtitle: '2 breakdowns',
+                            color: Colors.orange,
+                            icon: Icons.report_problem_outlined,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildMetricCard(
-                          title: 'Top Affected Line',
-                          value: worstLine,
-                          subtitle: '$maxLineFaults total faults',
-                          color: Colors.blue,
-                          icon: Icons.factory_outlined,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildMetricCard(
+                            title: 'Top Affected Line',
+                            value: worstLine,
+                            subtitle: '$maxLineFaults total faults',
+                            color: Colors.blue,
+                            icon: Icons.factory_outlined,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ] else ...[
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildMetricCard(
-                          title: 'Recurring Faults',
-                          value: '${recurringMachines.length}',
-                          subtitle: 'Machines affected',
-                          color: recurringMachines.isNotEmpty
-                              ? Colors.red
-                              : Colors.green,
-                          icon: Icons.warning_amber_rounded,
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: _buildMetricCard(
+                            title: 'Recurring Faults',
+                            value: '${recurringMachines.length}',
+                            subtitle: 'Machines affected',
+                            color: recurringMachines.isNotEmpty
+                                ? Colors.red
+                                : Colors.green,
+                            icon: Icons.warning_amber_rounded,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildMetricCard(
-                          title: 'High Risk',
-                          value: '$highRiskCount',
-                          subtitle: '≥3 breakdowns',
-                          color: Colors.red.shade800,
-                          icon: Icons.dangerous_outlined,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildMetricCard(
+                            title: 'High Risk',
+                            value: '$highRiskCount',
+                            subtitle: '≥3 breakdowns',
+                            color: Colors.red.shade800,
+                            icon: Icons.dangerous_outlined,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildMetricCard(
-                          title: 'Moderate Risk',
-                          value: '$moderateRiskCount',
-                          subtitle: '2 breakdowns',
-                          color: Colors.orange,
-                          icon: Icons.report_problem_outlined,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildMetricCard(
+                            title: 'Moderate Risk',
+                            value: '$moderateRiskCount',
+                            subtitle: '2 breakdowns',
+                            color: Colors.orange,
+                            icon: Icons.report_problem_outlined,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildMetricCard(
-                          title: 'Top Affected Line',
-                          value: worstLine,
-                          subtitle: '$maxLineFaults total faults',
-                          color: Colors.blue,
-                          icon: Icons.factory_outlined,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildMetricCard(
+                            title: 'Top Affected Line',
+                            value: worstLine,
+                            subtitle: '$maxLineFaults total faults',
+                            color: Colors.blue,
+                            icon: Icons.factory_outlined,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
                 const SizedBox(height: 25),
@@ -583,13 +592,15 @@ class RecurringFaultsScreen extends StatelessWidget {
     required Color color,
     required IconData icon,
   }) {
+    final isNumeric = int.tryParse(value) != null;
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -597,26 +608,29 @@ class RecurringFaultsScreen extends StatelessWidget {
                 Expanded(
                   child: Text(
                     title,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Colors.grey,
-                      fontSize: 13,
+                      fontSize: 12.5,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
-                Icon(icon, color: color, size: 20),
+                const SizedBox(width: 4),
+                Icon(icon, color: color, size: 18),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Text(
               value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
+              softWrap: true,
               style: TextStyle(
-                fontSize: value.length > 8 ? 16 : 22,
+                fontSize: isNumeric ? 24 : 14.5,
                 fontWeight: FontWeight.bold,
                 color: color,
+                height: 1.25,
               ),
             ),
             const SizedBox(height: 4),
