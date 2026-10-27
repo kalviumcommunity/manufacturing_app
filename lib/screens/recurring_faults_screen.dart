@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+import '../utils/responsive.dart';
 import 'machine_details.dart';
 
 class RecurringFaultsScreen extends StatelessWidget {
@@ -130,52 +131,104 @@ class RecurringFaultsScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
 
-                // Metrics Row
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildMetricCard(
-                        title: 'Recurring Faults',
-                        value: '${recurringMachines.length}',
-                        subtitle: 'Machines affected',
-                        color: recurringMachines.isNotEmpty
-                            ? Colors.red
-                            : Colors.green,
-                        icon: Icons.warning_amber_rounded,
+                // Metrics Row / Grid (Responsive)
+                if (Responsive.isMobile(context)) ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildMetricCard(
+                          title: 'Recurring Faults',
+                          value: '${recurringMachines.length}',
+                          subtitle: 'Machines affected',
+                          color: recurringMachines.isNotEmpty
+                              ? Colors.red
+                              : Colors.green,
+                          icon: Icons.warning_amber_rounded,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildMetricCard(
-                        title: 'High Risk',
-                        value: '$highRiskCount',
-                        subtitle: '≥3 breakdowns',
-                        color: Colors.red.shade800,
-                        icon: Icons.dangerous_outlined,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildMetricCard(
+                          title: 'High Risk',
+                          value: '$highRiskCount',
+                          subtitle: '≥3 breakdowns',
+                          color: Colors.red.shade800,
+                          icon: Icons.dangerous_outlined,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildMetricCard(
-                        title: 'Moderate Risk',
-                        value: '$moderateRiskCount',
-                        subtitle: '2 breakdowns',
-                        color: Colors.orange,
-                        icon: Icons.report_problem_outlined,
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildMetricCard(
+                          title: 'Moderate Risk',
+                          value: '$moderateRiskCount',
+                          subtitle: '2 breakdowns',
+                          color: Colors.orange,
+                          icon: Icons.report_problem_outlined,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildMetricCard(
-                        title: 'Top Affected Line',
-                        value: worstLine,
-                        subtitle: '$maxLineFaults total faults',
-                        color: Colors.blue,
-                        icon: Icons.factory_outlined,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildMetricCard(
+                          title: 'Top Affected Line',
+                          value: worstLine,
+                          subtitle: '$maxLineFaults total faults',
+                          color: Colors.blue,
+                          icon: Icons.factory_outlined,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                ] else ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildMetricCard(
+                          title: 'Recurring Faults',
+                          value: '${recurringMachines.length}',
+                          subtitle: 'Machines affected',
+                          color: recurringMachines.isNotEmpty
+                              ? Colors.red
+                              : Colors.green,
+                          icon: Icons.warning_amber_rounded,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildMetricCard(
+                          title: 'High Risk',
+                          value: '$highRiskCount',
+                          subtitle: '≥3 breakdowns',
+                          color: Colors.red.shade800,
+                          icon: Icons.dangerous_outlined,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildMetricCard(
+                          title: 'Moderate Risk',
+                          value: '$moderateRiskCount',
+                          subtitle: '2 breakdowns',
+                          color: Colors.orange,
+                          icon: Icons.report_problem_outlined,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildMetricCard(
+                          title: 'Top Affected Line',
+                          value: worstLine,
+                          subtitle: '$maxLineFaults total faults',
+                          color: Colors.blue,
+                          icon: Icons.factory_outlined,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 25),
 
                 // Early Warning Banner
@@ -249,13 +302,17 @@ class RecurringFaultsScreen extends StatelessWidget {
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text(
-                                    entry.key,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 14,
+                                  Expanded(
+                                    child: Text(
+                                      entry.key,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 14,
+                                      ),
                                     ),
                                   ),
+                                  const SizedBox(width: 8),
                                   Text(
                                     '${entry.value} faults (${(ratio * 100).toStringAsFixed(1)}%)',
                                     style: const TextStyle(
@@ -288,26 +345,52 @@ class RecurringFaultsScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 30),
 
-                // Problematic Machines List
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Recurring Fault Machines',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                // Problematic Machines List (Responsive Header)
+                if (Responsive.isMobile(context)) ...[
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Recurring Fault Machines',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    Text(
-                      'Sorted by breakdown frequency',
-                      style: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: 13,
+                      const SizedBox(height: 4),
+                      Text(
+                        'Sorted by breakdown frequency',
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 12,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                ] else ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Flexible(
+                        child: Text(
+                          'Recurring Fault Machines',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Sorted by breakdown frequency',
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 14),
 
                 if (recurringMachines.isEmpty)
@@ -371,6 +454,8 @@ class RecurringFaultsScreen extends StatelessWidget {
                                     children: [
                                       Text(
                                         name,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                         style: const TextStyle(
                                           fontSize: 17,
                                           fontWeight: FontWeight.bold,
@@ -379,6 +464,8 @@ class RecurringFaultsScreen extends StatelessWidget {
                                       const SizedBox(height: 3),
                                       Text(
                                         '$machineId • $line',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
                                           color: Colors.grey.shade600,
                                           fontSize: 13,
@@ -524,8 +611,10 @@ class RecurringFaultsScreen extends StatelessWidget {
             const SizedBox(height: 10),
             Text(
               value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 22,
+                fontSize: value.length > 8 ? 16 : 22,
                 fontWeight: FontWeight.bold,
                 color: color,
               ),
@@ -533,6 +622,7 @@ class RecurringFaultsScreen extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               subtitle,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(color: Colors.grey, fontSize: 11),
             ),
