@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
@@ -120,7 +121,7 @@ class _MachineDetailsScreenState extends State<MachineDetailsScreen>
               }
               Navigator.pop(dialogContext, value);
             },
-            child: const Text('Confirm Repair'),
+            child: const Text('Submit Work Order'),
           ),
         ],
       ),
@@ -133,51 +134,86 @@ class _MachineDetailsScreenState extends State<MachineDetailsScreen>
     }
 
     try {
-      final firestore = FirebaseFirestore.instance;
-
-      var machineQuery = await firestore
-          .collection('machines')
-          .where('machineId', isEqualTo: widget.machineId)
-          .limit(1)
-          .get();
-
-      DocumentReference machineRef;
-      if (machineQuery.docs.isNotEmpty) {
-        machineRef = machineQuery.docs.first.reference;
-      } else {
-        machineRef = firestore.collection('machines').doc(widget.machineId);
+      bool fnSuccess = false;
+      try {
+        final callable = FirebaseFunctions.instanceFor(region: 'asia-south1')
+            .httpsCallable('reportRepair');
+        final response = await callable.call<Map<String, dynamic>>({
+          'machineId': widget.machineId,
+          'notes': notes.trim(),
+        });
+        if (response.data['success'] == true) {
+          fnSuccess = true;
+        }
+      } catch (_) {
+        // Fallback to transactional client update
       }
 
-      final repairRef = firestore.collection('repairs').doc();
+      if (!fnSuccess) {
+        final firestore = FirebaseFirestore.instance;
 
-      final batch = firestore.batch();
+        var machineQuery = await firestore
+            .collection('machines')
+            .where('machineId', isEqualTo: widget.machineId)
+            .limit(1)
+            .get();
 
-      batch.update(machineRef, {
-        'status': 'Running',
-        'lastFixedBy': user.uid,
-        'lastFixedByEmail': user.email ?? '',
-        'lastRepairNotes': notes.trim(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+        DocumentReference machineRef;
+        if (machineQuery.docs.isNotEmpty) {
+          machineRef = machineQuery.docs.first.reference;
+        } else {
+          machineRef = firestore.collection('machines').doc(widget.machineId);
+        }
 
-      batch.set(repairRef, {
-        'machineId': widget.machineId,
-        'machineName': widget.machineName,
-        'lineName': widget.lineName,
-        'notes': notes.trim(),
-        'repairedBy': user.uid,
-        'repairedByEmail': user.email ?? '',
-        'timestamp': FieldValue.serverTimestamp(),
-      });
+        final repairRef = firestore.collection('repairRequests').doc();
+        final historyRef = firestore.collection('workHistory').doc();
 
-      await batch.commit();
+        final batch = firestore.batch();
+
+        batch.update(machineRef, {
+          'status': 'Pending Verification',
+          'pendingRepairRequestId': repairRef.id,
+          'lastFixedBy': user.uid,
+          'lastFixedByEmail': user.email ?? '',
+          'lastRepairNotes': notes.trim(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+
+        batch.set(repairRef, {
+          'machineId': widget.machineId,
+          'machineName': widget.machineName,
+          'employeeId': user.uid,
+          'employeeEmail': user.email ?? '',
+          'notes': notes.trim(),
+          'previousStatus': 'Breakdown',
+          'status': 'Pending Verification',
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+
+        batch.set(historyRef, {
+          'machineId': widget.machineId,
+          'machineName': widget.machineName,
+          'action': 'repair_submitted',
+          'previousStatus': 'Breakdown',
+          'newStatus': 'Pending Verification',
+          'employeeId': user.uid,
+          'employeeEmail': user.email ?? '',
+          'notes': notes.trim(),
+          'repairRequestId': repairRef.id,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+
+        await batch.commit();
+      }
 
       if (!context.mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Machine repaired and returned to Running status!'),
-          backgroundColor: AppColors.running,
+          content: Text(
+            'Repair submitted! Equipment is locked in Pending Verification awaiting supervisor sign-off.',
+          ),
+          backgroundColor: AppColors.maintenance,
         ),
       );
     } catch (e) {
@@ -186,6 +222,207 @@ class _MachineDetailsScreenState extends State<MachineDetailsScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Could not submit repair report: $e'),
+          backgroundColor: AppColors.breakdown,
+        ),
+      );
+    }
+  }
+
+  Future<void> _reviewRepairDialog({
+    required BuildContext context,
+    required String? pendingRequestId,
+    required String currentMachineName,
+  }) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final notesController = TextEditingController();
+
+    await showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Supervisor Safety Verification'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Machine: $currentMachineName (${widget.machineId})',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Conduct physical and electrical inspection before authorizing equipment re-energization.',
+                style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 14),
+              const Text(
+                'Supervisor Review Notes (Mandatory if rejecting):',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+              ),
+              const SizedBox(height: 6),
+              TextField(
+                controller: notesController,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  hintText: 'e.g. Cleared safety lockouts, vibration tests normal...',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.breakdown,
+              side: const BorderSide(color: AppColors.breakdown),
+            ),
+            onPressed: () async {
+              final reviewNotes = notesController.text.trim();
+              if (reviewNotes.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Please enter review notes when rejecting a repair.'),
+                    backgroundColor: AppColors.breakdown,
+                  ),
+                );
+                return;
+              }
+              Navigator.pop(dialogContext);
+              await _executeRepairReview(context, pendingRequestId, 'reject', reviewNotes);
+            },
+            child: const Text('Reject Repair'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.running,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              await _executeRepairReview(
+                context,
+                pendingRequestId,
+                'approve',
+                notesController.text.trim(),
+              );
+            },
+            child: const Text('Approve & Re-energize'),
+          ),
+        ],
+      ),
+    );
+
+    notesController.dispose();
+  }
+
+  Future<void> _executeRepairReview(
+    BuildContext context,
+    String? requestId,
+    String decision,
+    String reviewNotes,
+  ) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      bool fnSuccess = false;
+      if (requestId != null && requestId.isNotEmpty) {
+        try {
+          final callable = FirebaseFunctions.instanceFor(region: 'asia-south1')
+              .httpsCallable('reviewRepair');
+          final response = await callable.call<Map<String, dynamic>>({
+            'repairRequestId': requestId,
+            'decision': decision,
+            'notes': reviewNotes,
+          });
+          if (response.data['success'] == true) fnSuccess = true;
+        } catch (_) {
+          // Fallback to client transaction
+        }
+      }
+
+      if (!fnSuccess) {
+        final firestore = FirebaseFirestore.instance;
+        final approved = decision == 'approve';
+        final nextStatus = approved ? 'Running' : 'Breakdown';
+
+        var machineQuery = await firestore
+            .collection('machines')
+            .where('machineId', isEqualTo: widget.machineId)
+            .limit(1)
+            .get();
+
+        DocumentReference machineRef;
+        if (machineQuery.docs.isNotEmpty) {
+          machineRef = machineQuery.docs.first.reference;
+        } else {
+          machineRef = firestore.collection('machines').doc(widget.machineId);
+        }
+
+        final batch = firestore.batch();
+
+        batch.update(machineRef, {
+          'status': nextStatus,
+          'pendingRepairRequestId': FieldValue.delete(),
+          'updatedAt': FieldValue.serverTimestamp(),
+          if (approved) ...{
+            'verifiedBy': user.uid,
+            'verifiedByEmail': user.email ?? '',
+            'verifiedAt': FieldValue.serverTimestamp(),
+          }
+        });
+
+        if (requestId != null && requestId.isNotEmpty) {
+          final repairRef = firestore.collection('repairRequests').doc(requestId);
+          batch.update(repairRef, {
+            'status': approved ? 'Approved' : 'Rejected',
+            'decision': decision,
+            'reviewedBy': user.uid,
+            'reviewedByEmail': user.email ?? '',
+            'reviewNotes': reviewNotes,
+            'reviewedAt': FieldValue.serverTimestamp(),
+          });
+        }
+
+        final historyRef = firestore.collection('workHistory').doc();
+        batch.set(historyRef, {
+          'machineId': widget.machineId,
+          'machineName': widget.machineName,
+          'action': approved ? 'repair_approved' : 'repair_rejected',
+          'previousStatus': 'Pending Verification',
+          'newStatus': nextStatus,
+          'reviewedBy': user.uid,
+          'reviewedByEmail': user.email ?? '',
+          'repairRequestId': requestId ?? '',
+          'notes': reviewNotes,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+
+        await batch.commit();
+      }
+
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(decision == 'approve'
+              ? 'Repair verified. Equipment safely re-energized to Running status!'
+              : 'Repair rejected. Equipment kept in Breakdown status.'),
+          backgroundColor: decision == 'approve' ? AppColors.running : AppColors.breakdown,
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to complete verification: $e'),
           backgroundColor: AppColors.breakdown,
         ),
       );
@@ -352,7 +589,51 @@ class _MachineDetailsScreenState extends State<MachineDetailsScreen>
                       ),
                     ),
 
-                    const SizedBox(height: 24),
+                    if (currentStatus == 'Pending Verification') ...[
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 16),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: AppColors.maintenanceLight,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.maintenanceBorder),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.security_rounded,
+                              color: AppColors.maintenance,
+                              size: 26,
+                            ),
+                            const SizedBox(width: 12),
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Safety Lockout Active',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 14,
+                                      color: AppColors.maintenance,
+                                    ),
+                                  ),
+                                  SizedBox(height: 2),
+                                  Text(
+                                    'Technician repair has been submitted. Machine remains locked until a supervisor inspects and authorizes re-energization.',
+                                    style: TextStyle(
+                                      fontSize: 12.5,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
 
                     // ACTIONS SECTION
                     const Text(
@@ -368,6 +649,8 @@ class _MachineDetailsScreenState extends State<MachineDetailsScreen>
                     LayoutBuilder(
                       builder: (context, constraints) {
                         final isWide = constraints.maxWidth >= 600;
+                        final pendingRequestId =
+                            machineData?['pendingRepairRequestId'] as String?;
 
                         final inspectionButton = OutlinedButton.icon(
                           onPressed: () {
@@ -417,23 +700,44 @@ class _MachineDetailsScreenState extends State<MachineDetailsScreen>
                         final fixedButton = ElevatedButton.icon(
                           onPressed: () => _reportFixed(context),
                           icon: const Icon(Icons.build_circle_rounded, size: 19),
-                          label: const Text('Mark as Fixed'),
+                          label: const Text('Submit Repair'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.running,
-                            foregroundColor: Colors.black,
+                            foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                           ),
                         );
+
+                        final reviewButton = ElevatedButton.icon(
+                          onPressed: () => _reviewRepairDialog(
+                            context: context,
+                            pendingRequestId: pendingRequestId,
+                            currentMachineName: currentMachineName,
+                          ),
+                          icon: const Icon(Icons.verified_user_rounded, size: 19),
+                          label: const Text('Supervisor Sign-off'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.maintenance,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                        );
+
+                        Widget actionButton;
+                        if (currentStatus == 'Breakdown') {
+                          actionButton = fixedButton;
+                        } else if (currentStatus == 'Pending Verification') {
+                          actionButton = reviewButton;
+                        } else {
+                          actionButton = breakdownButton;
+                        }
 
                         if (isWide) {
                           return Row(
                             children: [
                               Expanded(child: inspectionButton),
                               const SizedBox(width: 14),
-                              if (currentStatus == 'Breakdown')
-                                Expanded(child: fixedButton)
-                              else
-                                Expanded(child: breakdownButton),
+                              Expanded(child: actionButton),
                             ],
                           );
                         }
@@ -442,10 +746,7 @@ class _MachineDetailsScreenState extends State<MachineDetailsScreen>
                           children: [
                             SizedBox(width: double.infinity, child: inspectionButton),
                             const SizedBox(height: 10),
-                            if (currentStatus == 'Breakdown')
-                              SizedBox(width: double.infinity, child: fixedButton)
-                            else
-                              SizedBox(width: double.infinity, child: breakdownButton),
+                            SizedBox(width: double.infinity, child: actionButton),
                           ],
                         );
                       },

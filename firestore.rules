@@ -1,0 +1,83 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        getUserRole() == 'admin' ||
+        (request.auth.token.keys().hasAny(['role']) && request.auth.token.role == 'admin')
+      );
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // User profiles
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId) || isAdmin();
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Machinery registry
+    match /machines/{machineId} {
+      allow read: if isAuthenticated();
+      allow create: if isAdmin();
+      allow update: if isAuthenticated();
+      allow delete: if isAdmin();
+    }
+
+    // Breakdown stoppage tickets
+    match /breakdowns/{breakdownId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if isAdmin();
+    }
+
+    // Safety and quality inspections
+    match /inspectionReports/{reportId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Legacy and client repairs collection
+    match /repairs/{repairId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated();
+      allow delete: if isAdmin();
+    }
+
+    // Dual-authorization repair requests
+    match /repairRequests/{requestId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAdmin();
+    }
+
+    // Immutable audit ledger - only Cloud Functions Admin SDK can write
+    match /workHistory/{historyId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
+    // Fail-closed default rule for unmapped collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

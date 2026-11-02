@@ -1,0 +1,61 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "inspectionReports",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "machineId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "breakdowns",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "machineId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "machines",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "lineName",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "repairRequests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

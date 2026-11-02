@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
@@ -582,6 +583,343 @@ class _AdminScreenState extends State<AdminScreen> {
     );
   }
 
+  Future<void> _reviewRepairDialog({
+    required BuildContext context,
+    required String repairRequestId,
+    required String machineId,
+    required String machineName,
+    required String technicianEmail,
+    required String repairNotes,
+  }) async {
+    final notesController = TextEditingController();
+
+    await showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Supervisor Safety Verification'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Machine: $machineName ($machineId)',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Technician: $technicianEmail',
+                style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Technician Work Notes:',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+              ),
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(top: 4, bottom: 12),
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Text(
+                  repairNotes.isNotEmpty ? repairNotes : 'No notes provided',
+                  style: const TextStyle(fontSize: 12),
+                ),
+              ),
+              const Text(
+                'Supervisor Review Notes (Mandatory if rejecting):',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+              ),
+              const SizedBox(height: 4),
+              TextField(
+                controller: notesController,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  hintText: 'e.g. Conducted physical inspection, lockout cleared...',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.breakdown,
+              side: const BorderSide(color: AppColors.breakdown),
+            ),
+            onPressed: () async {
+              final notes = notesController.text.trim();
+              if (notes.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Please provide review notes when rejecting a repair.'),
+                    backgroundColor: AppColors.breakdown,
+                  ),
+                );
+                return;
+              }
+              Navigator.pop(dialogContext);
+              await _submitReview(context, repairRequestId, machineId, 'reject', notes);
+            },
+            child: const Text('Reject Repair'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.running,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              await _submitReview(
+                context,
+                repairRequestId,
+                machineId,
+                'approve',
+                notesController.text.trim(),
+              );
+            },
+            child: const Text('Approve & Re-energize'),
+          ),
+        ],
+      ),
+    );
+    notesController.dispose();
+  }
+
+  Future<void> _submitReview(
+    BuildContext context,
+    String repairRequestId,
+    String machineId,
+    String decision,
+    String reviewNotes,
+  ) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      bool fnSuccess = false;
+      try {
+        final callable = FirebaseFunctions.instanceFor(region: 'asia-south1')
+            .httpsCallable('reviewRepair');
+        final res = await callable.call<Map<String, dynamic>>({
+          'repairRequestId': repairRequestId,
+          'decision': decision,
+          'notes': reviewNotes,
+        });
+        if (res.data['success'] == true) fnSuccess = true;
+      } catch (_) {
+        // Fallback to client transaction
+      }
+
+      if (!fnSuccess) {
+        final firestore = FirebaseFirestore.instance;
+        final approved = decision == 'approve';
+        final nextStatus = approved ? 'Running' : 'Breakdown';
+
+        final batch = firestore.batch();
+        final machineRef = firestore.collection('machines').doc(machineId);
+        final repairRef = firestore.collection('repairRequests').doc(repairRequestId);
+        final historyRef = firestore.collection('workHistory').doc();
+
+        batch.update(machineRef, {
+          'status': nextStatus,
+          'pendingRepairRequestId': FieldValue.delete(),
+          'updatedAt': FieldValue.serverTimestamp(),
+          if (approved) ...{
+            'verifiedBy': user.uid,
+            'verifiedByEmail': user.email ?? '',
+            'verifiedAt': FieldValue.serverTimestamp(),
+          }
+        });
+
+        batch.update(repairRef, {
+          'status': approved ? 'Approved' : 'Rejected',
+          'decision': decision,
+          'reviewedBy': user.uid,
+          'reviewedByEmail': user.email ?? '',
+          'reviewNotes': reviewNotes,
+          'reviewedAt': FieldValue.serverTimestamp(),
+        });
+
+        batch.set(historyRef, {
+          'machineId': machineId,
+          'action': approved ? 'repair_approved' : 'repair_rejected',
+          'previousStatus': 'Pending Verification',
+          'newStatus': nextStatus,
+          'reviewedBy': user.uid,
+          'reviewedByEmail': user.email ?? '',
+          'repairRequestId': repairRequestId,
+          'notes': reviewNotes,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+
+        await batch.commit();
+      }
+
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(decision == 'approve'
+              ? 'Repair approved. Equipment safely re-energized to Running status.'
+              : 'Repair rejected. Equipment kept in Breakdown status.'),
+          backgroundColor: decision == 'approve' ? AppColors.running : AppColors.breakdown,
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to submit review: $e'),
+          backgroundColor: AppColors.breakdown,
+        ),
+      );
+    }
+  }
+
+  Widget _buildPendingVerificationsCard() {
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance
+          .collection('repairRequests')
+          .where('status', isEqualTo: 'Pending Verification')
+          .snapshots(),
+      builder: (context, snapshot) {
+        final requests = snapshot.data?.docs ?? [];
+        if (requests.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 20),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: AppColors.maintenanceLight,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.maintenanceBorder, width: 1.5),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.security_rounded, color: AppColors.maintenance, size: 24),
+                  const SizedBox(width: 10),
+                  Text(
+                    'SAFETY VERIFICATION REQUIRED (${requests.length})',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.maintenance,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Repaired equipment is locked out until an authorized administrator verifies safety compliance.',
+                style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 14),
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: requests.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 10),
+                itemBuilder: (context, index) {
+                  final doc = requests[index];
+                  final data = doc.data();
+                  final machineId = data['machineId'] as String? ?? '';
+                  final machineName = data['machineName'] as String? ?? machineId;
+                  final techEmail = data['employeeEmail'] as String? ?? 'Technician';
+                  final notes = data['notes'] as String? ?? '';
+
+                  return Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                machineName,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Fixed by $techEmail',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                              if (notes.isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  notes,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton.icon(
+                          onPressed: () => _reviewRepairDialog(
+                            context: context,
+                            repairRequestId: doc.id,
+                            machineId: machineId,
+                            machineName: machineName,
+                            technicianEmail: techEmail,
+                            repairNotes: notes,
+                          ),
+                          icon: const Icon(Icons.verified_user_rounded, size: 16),
+                          label: const Text('Verify & Unlock'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.maintenance,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            textStyle: const TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -692,6 +1030,9 @@ class _AdminScreenState extends State<AdminScreen> {
                   },
                 ),
                 const SizedBox(height: 20),
+
+                // PENDING SAFETY VERIFICATIONS (DUAL-AUTHORIZATION GATE)
+                _buildPendingVerificationsCard(),
 
                 // MACHINE TELEMETRY OVERVIEW
                 Container(

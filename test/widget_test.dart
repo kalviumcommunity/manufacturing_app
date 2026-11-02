@@ -161,4 +161,23 @@ void main() {
     expect(screen.lineName, 'Production Line');
     expect(screen.status, 'Running');
   });
+
+  testWidgets('PulsingStatusBadge renders Pending Verification status properly', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: PulsingStatusBadge(status: 'Pending Verification'),
+        ),
+      ),
+    );
+
+    expect(find.text('Pending Verification'), findsOneWidget);
+  });
+
+  test('AppColors.getStatusColor returns proper colors for all production statuses', () {
+    expect(AppColors.getStatusColor('Running'), AppColors.running);
+    expect(AppColors.getStatusColor('Breakdown'), AppColors.breakdown);
+    expect(AppColors.getStatusColor('Maintenance'), AppColors.maintenance);
+    expect(AppColors.getStatusColor('Pending Verification'), AppColors.maintenance);
+  });
 }
