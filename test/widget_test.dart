@@ -178,6 +178,6 @@ void main() {
     expect(AppColors.getStatusColor('Running'), AppColors.running);
     expect(AppColors.getStatusColor('Breakdown'), AppColors.breakdown);
     expect(AppColors.getStatusColor('Maintenance'), AppColors.maintenance);
-    expect(AppColors.getStatusColor('Pending Verification'), AppColors.maintenance);
+    expect(AppColors.getStatusColor('Pending Verification'), AppColors.pending);
   });
 }
